@@ -1,0 +1,239 @@
+.calendarContainer {
+  padding: 20px;
+}
+
+.calendarHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.viewControls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.viewButton {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  background: #f5f5f5;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.viewButton.active {
+  background: #4CAF50;
+  color: white;
+  border-color: #4CAF50;
+}
+
+.addButton {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.monthNavigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.navButton {
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.monthTitle {
+  margin: 0;
+  font-size: 1.5em;
+}
+
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.dayHeader {
+  text-align: center;
+  font-weight: bold;
+  padding: 8px;
+  background: #f5f5f5;
+}
+
+.calendarDay {
+  min-height: 100px;
+  border: 1px solid #eee;
+  padding: 8px;
+  position: relative;
+}
+
+.dayNumber {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.dayEvent {
+  font-size: 0.8em;
+  padding: 2px 4px;
+  margin: 2px 0;
+  border-radius: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dayEvent.release {
+  background: rgba(76, 175, 80, 0.2);
+  border-left: 3px solid #4CAF50;
+}
+
+.dayEvent.deadline {
+  background: rgba(244, 67, 54, 0.2);
+  border-left: 3px solid #F44336;
+}
+
+.emptyDay {
+  min-height: 100px;
+  background: #f9f9f9;
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 400px;
+  max-width: 90%;
+}
+
+.formGroup {
+  margin-bottom: 15px;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.formGroup input,
+.formGroup select,
+.formGroup textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.formGroup textarea {
+  min-height: 80px;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.formActions button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.formActions button[type="button"] {
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+}
+
+.formActions button[type="submit"] {
+  background: #4CAF50;
+  color: white;
+  border: none;
+}
+
+.eventList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.eventItem {
+  padding: 15px;
+  margin-bottom: 10px;
+  border-left: 4px solid #ccc;
+  display: flex;
+  align-items: flex-start;
+}
+
+.eventItem.release {
+  border-left-color: #4CAF50;
+}
+
+.eventItem.deadline {
+  border-left-color: #F44336;
+}
+
+.eventDate {
+  min-width: 100px;
+  font-weight: bold;
+  margin-right: 20px;
+}
+
+.eventDetails {
+  flex: 1;
+}
+
+.eventDetails h3 {
+  margin: 0 0 5px 0;
+}
+
+.eventDetails p {
+  margin: 0;
+  color: #666;
+}
+
+.releaseBadge {
+  display: inline-block;
+  background: #4CAF50;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8em;
+  margin-top: 5px;
+}
+
+.deadlineBadge {
+  display: inline-block;
+  background: #F44336;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8em;
+  margin-top: 5px;
+}

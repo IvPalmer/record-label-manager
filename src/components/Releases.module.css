@@ -1,0 +1,142 @@
+/* Releases.module.css */
+.releasesContainer {
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative; /* Needed for absolute positioning of overlay/loader if added */
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header h2 {
+  margin: 0;
+  color: #333;
+}
+
+.addButton {
+  padding: 10px 15px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.addButton:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.addButton:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+
+.releasesTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.releasesTable th,
+.releasesTable td {
+  border: 1px solid #ddd;
+  padding: 12px;
+  text-align: left;
+  vertical-align: middle; /* Align content vertically */
+}
+
+.releasesTable th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+  color: #555;
+}
+
+.releasesTable tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.releasesTable tr:hover {
+  background-color: #f1f1f1;
+}
+
+.status {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.85em;
+  font-weight: bold;
+  text-transform: capitalize;
+  color: white;
+  display: inline-block; /* Ensures padding and background apply correctly */
+  min-width: 70px; /* Give status badges some minimum width */
+  text-align: center;
+}
+
+.status.draft {
+  background-color: #6c757d; /* Gray */
+}
+
+.status.scheduled {
+  background-color: #ffc107; /* Yellow */
+  color: #333;
+}
+
+.status.released {
+  background-color: #28a745; /* Green */
+}
+
+.actionButton {
+  padding: 6px 10px;
+  margin-right: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #fff;
+  color: #333;
+  font-size: 0.9em;
+  transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.actionButton:hover:not(:disabled) {
+  background-color: #e9e9e9;
+  border-color: #bbb;
+}
+
+.actionButton:disabled {
+  background-color: #eeeeee;
+  border-color: #dddddd;
+  color: #aaaaaa;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+
+.deleteButton {
+  border-color: #dc3545;
+  color: #dc3545; /* Red */
+}
+
+.deleteButton:hover:not(:disabled) {
+  background-color: #dc3545;
+  color: white;
+}
+
+.errorText {
+  color: #dc3545; /* Red for errors */
+  margin: 10px 0;
+  padding: 10px;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+}
