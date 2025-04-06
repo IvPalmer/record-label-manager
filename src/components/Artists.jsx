@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getArtists, addArtist, updateArtist, deleteArtist } from '../api/artists';
 import ArtistForm from './ArtistForm'; // Import the form component
 import styles from './Artists.module.css'; // Import CSS module
 
 const Artists = () => {
+  const navigate = useNavigate();
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -34,8 +36,8 @@ const Artists = () => {
   };
 
   const handleEditClick = (artist) => {
-    setEditingArtist(artist);
-    setShowForm(true);
+    // Navigate to artist detail page instead of showing a form
+    navigate(`/artists/${artist.id}`);
   };
 
   const handleDeleteClick = async (id) => {
@@ -100,7 +102,11 @@ const Artists = () => {
               <tr key={artist.id}>
                 <td>{artist.name}</td>
                 <td>{artist.email}</td>
-                <td>{artist.status}</td>
+                <td>
+                  <span className={`${styles.status} ${styles[artist.labels?.length ? 'signed' : 'unsigned']}`}>
+                    {artist.labels?.length ? 'Signed' : 'Unsigned'}
+                  </span>
+                </td>
                 <td className={styles.actions}>
                   <button onClick={() => handleEditClick(artist)} className={styles.editButton}>Edit</button>
                   <button onClick={() => handleDeleteClick(artist.id)} className={styles.deleteButton}>Delete</button>

@@ -1,0 +1,216 @@
+/* ArtistDetail.module.css */
+.artistDetail {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: #333;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.backButton {
+  padding: 8px 15px;
+  background-color: #f2f2f2;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+.backButton:hover {
+  background-color: #e6e6e6;
+}
+
+.editButton, .saveButton {
+  padding: 8px 15px;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.editButton:hover, .saveButton:hover {
+  background-color: #0b7dda;
+}
+
+.deleteButton {
+  padding: 8px 15px;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.deleteButton:hover {
+  background-color: #da190b;
+}
+
+.cancelButton {
+  padding: 8px 15px;
+  background-color: #f2f2f2;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cancelButton:hover {
+  background-color: #e6e6e6;
+}
+
+.editForm {
+  background-color: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.formGroup {
+  margin-bottom: 15px;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.formGroup input,
+.formGroup textarea,
+.formGroup select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.formRow {
+  display: flex;
+  gap: 20px;
+}
+
+.formRow .formGroup {
+  flex: 1;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.artistInfo {
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.infoSection {
+  margin-bottom: 25px;
+}
+
+.infoSection h3 {
+  padding-bottom: 5px;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 15px;
+}
+
+.infoItem {
+  margin-bottom: 10px;
+}
+
+.label {
+  font-weight: 500;
+  color: #666;
+  margin-right: 5px;
+}
+
+.labelList {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.labelList li {
+  margin-bottom: 8px;
+}
+
+.imageContainer {
+  max-width: 300px;
+  margin-top: 10px;
+}
+
+.artistImage {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.multiSelect {
+  height: 120px;
+}
+
+.error {
+  color: #f44336;
+  padding: 10px;
+  background-color: #ffebee;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+/* Status styles */
+.status {
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.85em;
+  font-weight: 500;
+  color: #fff;
+  text-transform: capitalize;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.signed {
+  background-color: #007bff; /* Blue */
+}
+
+.unsigned {
+  background-color: #dc3545; /* Red */
+}

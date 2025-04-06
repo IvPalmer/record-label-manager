@@ -78,3 +78,36 @@
   margin-top: 20px;
   font-style: italic;
 }
+
+/* Status styles similar to Django admin */
+.status {
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.85em;
+  font-weight: 500;
+  color: #fff;
+  text-transform: capitalize;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.active {
+  background-color: #28a745; /* Green */
+}
+
+.inactive {
+  background-color: #6c757d; /* Gray */
+}
+
+.pending {
+  background-color: #ffc107; /* Yellow */
+  color: #333;
+}
+
+.signed {
+  background-color: #007bff; /* Blue */
+}
+
+.unsigned {
+  background-color: #dc3545; /* Red */
+}

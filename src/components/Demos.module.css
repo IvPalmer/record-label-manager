@@ -98,6 +98,7 @@
 }
 
 /* Status-specific styles */
+.new { background-color: #ff9800; color: #fff; } /* Orange */
 .pendingreview { background-color: #ffc107; color: #333; } /* Yellow */
 .reviewed { background-color: #17a2b8; } /* Teal */
 .accepted { background-color: #28a745; } /* Green */

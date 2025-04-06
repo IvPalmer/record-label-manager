@@ -5,9 +5,12 @@ import './App.css';
 // Import components
 import Dashboard from './components/Dashboard';
 import Releases from './components/Releases';
+import ReleaseDetail from './components/ReleaseDetail';
 import Calendar from './components/Calendar';
 import Artists from './components/Artists';
+import ArtistDetail from './components/ArtistDetail';
 import Demos from './components/Demos';
+import DemoDetail from './components/DemoDetail';
 import Documents from './components/Documents';
 import Settings from './components/Settings';
 
@@ -32,12 +35,14 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/releases" element={<Releases />} />
+            <Route path="/releases/:id" element={<ReleaseDetail />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/artists" element={<Artists />} />
+            <Route path="/artists/:id" element={<ArtistDetail />} />
             <Route path="/demos" element={<Demos />} />
+            <Route path="/demos/:id" element={<DemoDetail />} />
             <Route path="/documents" element={<Documents />} />
             <Route path="/settings" element={<Settings />} />
-            {/* Add more specific routes later, e.g., /releases/:id */}
           </Routes>
         </main>
       </div>

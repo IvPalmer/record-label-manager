@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getDemos, updateDemo, addDemo, deleteDemo } from '../api/demos'; // Import deleteDemo
+import { useNavigate } from 'react-router-dom';
+import { getDemos, updateDemo, addDemo, deleteDemo } from '../api/demos';
 import DemoForm from './DemoForm';
 import styles from './Demos.module.css';
 
 const Demos = () => {
+  const navigate = useNavigate();
   const [demos, setDemos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -53,8 +55,8 @@ const Demos = () => {
   };
 
   const handleEditClick = (demo) => {
-    setEditingDemo(demo);
-    setShowForm(true);
+    // Navigate to the detail page instead of showing a form
+    navigate(`/demos/${demo.id}`);
   };
 
   const handleCancel = () => {
@@ -149,8 +151,8 @@ const Demos = () => {
                     {/* Ensure submissionDate is formatted if it's a Date object */}
                     <td>{demo.submissionDate instanceof Date ? demo.submissionDate.toLocaleDateString() : demo.submissionDate}</td>
                     <td>
-                      <span className={`${styles.status} ${styles[String(demo.status).toLowerCase().replace(/ /g, '')] || ''}`}>
-                        {demo.status}
+                      <span className={`${styles.status} ${styles[String(demo.status || 'new').toLowerCase().replace(/ /g, '')] || ''}`}>
+                        {demo.status || 'New'}
                       </span>
                     </td>
                     <td className={styles.actions}>

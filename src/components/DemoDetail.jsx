@@ -31,7 +31,12 @@ const DemoDetail = () => {
     try {
       // Get demo details
       const demos = await getDemos();
-      const currentDemo = demos.find(demo => demo.id === parseInt(id));
+      // Try parsing as integer first, but also compare as string if that fails
+      const currentDemo = demos.find(demo => 
+        demo.id === parseInt(id) || 
+        demo.id === id || 
+        String(demo.id) === String(id)
+      );
       
       if (!currentDemo) {
         throw new Error('Demo not found');

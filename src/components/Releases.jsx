@@ -1,31 +1,40 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styles from './Releases.module.css';
 import ReleaseForm from './ReleaseForm';
-import { getReleases, addRelease, updateRelease, deleteRelease } from '../api/releases'; // Import mock API functions
+import { getReleases, addRelease, updateRelease, deleteRelease } from '../api/releases';
+import { getArtists } from '../api/artists'; // Import artists API
 
 const Releases = () => {
+  const navigate = useNavigate();
   const [releases, setReleases] = useState([]);
+  const [artists, setArtists] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingRelease, setEditingRelease] = useState(null);
 
-  // Fetch releases on component mount
+  // Fetch releases and artists on component mount
   useEffect(() => {
-    const loadReleases = async () => {
+    const loadData = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const data = await getReleases();
-        setReleases(data);
+        // Fetch releases and artists in parallel
+        const [releasesData, artistsData] = await Promise.all([
+          getReleases(),
+          getArtists()
+        ]);
+        setReleases(releasesData);
+        setArtists(artistsData);
       } catch (err) {
-        console.error("Error fetching releases:", err);
-        setError('Failed to load releases.');
+        console.error("Error fetching data:", err);
+        setError('Failed to load data.');
       } finally {
         setIsLoading(false);
       }
     };
-    loadReleases();
+    loadData();
   }, []); // Empty dependency array ensures this runs only once on mount
 
   const handleAddNewReleaseClick = () => {
@@ -66,11 +75,8 @@ const Releases = () => {
   };
 
   const handleEditRelease = (id) => {
-    const releaseToEdit = releases.find(release => release.id === id);
-    if (releaseToEdit) {
-      setEditingRelease(releaseToEdit);
-      setShowForm(true);
-    }
+    // Navigate to release detail page instead of showing a form
+    navigate(`/releases/${id}`);
   };
 
   const handleDeleteRelease = async (id) => {
@@ -135,11 +141,15 @@ const Releases = () => {
               releases.map((release) => (
                 <tr key={release.id}>
                   <td>{release.title}</td>
-                  <td>{release.artist}</td>
+                  <td>
+                    {/* Display any known artists from label */}
+                    {artists.filter(artist => artist.labels?.includes(release.labelId))
+                      .map(artist => artist.name).join(', ') || 'Various Artists'}
+                  </td>
                   <td>{release.releaseDate}</td>
                   <td>
                     <span className={`${styles.status} ${styles[release.status?.toLowerCase() || 'draft']}`}>
-                      {release.status || 'N/A'}
+                      {release.status || 'Draft'}
                     </span>
                   </td>
                   <td>

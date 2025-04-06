@@ -1,0 +1,248 @@
+/* ReleaseDetail.module.css */
+.releaseDetail {
+  padding: 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 15px;
+}
+
+.header h1 {
+  margin: 0;
+  flex-grow: 1;
+  text-align: center;
+}
+
+.backButton {
+  padding: 8px 15px;
+  background-color: #f2f2f2;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+.backButton:hover {
+  background-color: #e6e6e6;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.editButton, .saveButton {
+  padding: 8px 15px;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.editButton:hover, .saveButton:hover {
+  background-color: #0b7dda;
+}
+
+.deleteButton {
+  padding: 8px 15px;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.deleteButton:hover {
+  background-color: #da190b;
+}
+
+.cancelButton {
+  padding: 8px 15px;
+  background-color: #f2f2f2;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cancelButton:hover {
+  background-color: #e6e6e6;
+}
+
+.editForm {
+  background-color: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.formGroup {
+  margin-bottom: 15px;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.formGroup input,
+.formGroup textarea,
+.formGroup select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.formRow {
+  display: flex;
+  gap: 20px;
+}
+
+.formRow .formGroup {
+  flex: 1;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.releaseInfo {
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.infoSection {
+  margin-bottom: 25px;
+}
+
+.infoSection h3 {
+  padding-bottom: 5px;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 15px;
+}
+
+.infoItem {
+  margin-bottom: 10px;
+}
+
+.label {
+  font-weight: 500;
+  color: #666;
+  margin-right: 5px;
+}
+
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag {
+  background-color: #e0e0e0;
+  color: #333;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.85em;
+}
+
+.artistList {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.artistList li {
+  margin-bottom: 8px;
+}
+
+.artistList a {
+  color: #2196F3;
+  text-decoration: none;
+}
+
+.artistList a:hover {
+  text-decoration: underline;
+}
+
+.links {
+  display: flex;
+  gap: 15px;
+}
+
+.link {
+  display: inline-block;
+  color: #2196F3;
+  text-decoration: none;
+  padding: 5px 10px;
+  border: 1px solid #2196F3;
+  border-radius: 4px;
+}
+
+.link:hover {
+  background-color: #2196F3;
+  color: white;
+}
+
+.error {
+  color: #f44336;
+  padding: 10px;
+  background-color: #ffebee;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+/* Status styles similar to Django admin */
+.status {
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.85em;
+  font-weight: 500;
+  color: #fff;
+  text-transform: capitalize;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.draft {
+  background-color: #6c757d; /* Gray */
+}
+
+.scheduled {
+  background-color: #ffc107; /* Yellow */
+  color: #333;
+}
+
+.released {
+  background-color: #28a745; /* Green */
+}
+
+.cancelled {
+  background-color: #dc3545; /* Red */
+}
