@@ -20,7 +20,7 @@ This document outlines the necessary backend implementation steps for the Record
 - [ ] Configure PostgreSQL database connection.
 - [ ] Set up Django REST Framework (DRF).
 - [ ] Implement user authentication (e.g., Django Allauth, DRF Knox/SimpleJWT).
-- [ ] Configure CORS headers.
+- [x] Configure CORS headers.
 - [ ] Set up media file handling (for audio uploads, documents).
 
 ## API Endpoints
@@ -33,10 +33,10 @@ This document outlines the necessary backend implementation steps for the Record
 - [ ] **Filtering/Sorting:** Add filtering by status, artist, date range; sorting options.
 
 ### Artists (`/api/artists/`)
-- [ ] **Model:** Define `Artist` model (name, contactEmail, bio, genre, etc.). Consider linking to User model if artists can log in.
-- [ ] **Serializer:** Create `ArtistSerializer`.
-- [ ] **Views:** Implement `ViewSet` for CRUD operations.
-- [ ] **Permissions:** Define who can manage artist data.
+- [x] **Model:** Define `Artist` model (name, contactEmail, bio, genre, etc.). Consider linking to User model if artists can log in.
+- [x] **Serializer:** Create `ArtistSerializer`.
+- [x] **Views:** Implement `ViewSet` for CRUD operations.
+- [x] **Permissions:** Define who can manage artist data.
 
 ### Demos (`/api/demos/`)
 - [ ] **Model:** Define `Demo` model (trackTitle, artistName, submissionDate, status, audioFile, notes, contactEmail). Link to `Artist` model?

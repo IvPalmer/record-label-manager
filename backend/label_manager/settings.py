@@ -144,9 +144,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ),
+    # Temporarily allow all access for development testing
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20
@@ -162,6 +164,12 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3005',
     'http://localhost:5173',
     'http://localhost:5174',
+    'http://localhost:5175',
+    'http://localhost:5176',
+    'http://localhost:5177',
+    'http://localhost:5178',
+    'http://localhost:5179',
+    'http://localhost:5180',
 ]
 CORS_ALLOW_CREDENTIALS = True
 

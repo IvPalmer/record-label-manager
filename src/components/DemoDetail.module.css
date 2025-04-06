@@ -1,0 +1,246 @@
+.demoDetail {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: #333;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.editButton,
+.deleteButton,
+.backButton,
+.saveButton,
+.cancelButton {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.editButton {
+  background-color: #4a90e2;
+  color: white;
+}
+
+.saveButton {
+  background-color: #4caf50;
+  color: white;
+}
+
+.deleteButton {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.backButton {
+  background-color: #95a5a6;
+  color: white;
+}
+
+.cancelButton {
+  background-color: #7f8c8d;
+  color: white;
+}
+
+.editButton:hover,
+.saveButton:hover,
+.deleteButton:hover,
+.backButton:hover,
+.cancelButton:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.content {
+  padding: 1rem 0;
+}
+
+.editForm {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.formGroup label {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #555;
+}
+
+.formGroup input,
+.formGroup select,
+.formGroup textarea {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.formGroup textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.detailView {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.mainInfo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.field {
+  margin-bottom: 1rem;
+}
+
+.field strong {
+  display: inline-block;
+  min-width: 120px;
+  color: #555;
+}
+
+.status {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-left: 0.5rem;
+}
+
+.new,
+.pendingreview {
+  background-color: #f39c12;
+  color: white;
+}
+
+.reviewed {
+  background-color: #3498db;
+  color: white;
+}
+
+.accepted {
+  background-color: #2ecc71;
+  color: white;
+}
+
+.rejected {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.statusActions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.statusButton {
+  padding: 0.35rem 0.75rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.acceptButton {
+  background-color: #2ecc71;
+  color: white;
+}
+
+.rejectButton {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.audioSection {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: #f9f9f9;
+  border-radius: 6px;
+}
+
+.audioSection h3 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  color: #333;
+}
+
+.audioPlayer {
+  width: 100%;
+}
+
+.notesSection {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: #f9f9f9;
+  border-radius: 6px;
+}
+
+.notesSection h3 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  color: #333;
+}
+
+.artistLink {
+  color: #3498db;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.artistLink:hover {
+  text-decoration: underline;
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: #7f8c8d;
+}
+
+.error {
+  padding: 1rem;
+  background-color: #ffecec;
+  color: #e74c3c;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.notFound {
+  text-align: center;
+  padding: 2rem;
+  color: #e74c3c;
+}

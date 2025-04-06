@@ -1,61 +1,52 @@
 /**
- * Mock API for Artists
- * Simulates asynchronous operations with in-memory data
+ * API for Artists
+ * Interacts with Django REST API backend
  */
+import apiClient from './client';
 
-let mockArtists = [
-  { id: 1, name: 'DJ Electron', email: 'electron@label.com', status: 'Active' },
-  { id: 2, name: 'Synthwave Masters', email: 'synth@label.com', status: 'Active' },
-  { id: 3, name: 'Astro Funk', email: 'astro@label.com', status: 'Inactive' }
-];
+const ENDPOINT = 'artists';
 
-const API_DELAY = 500;
-
-export const getArtists = () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(JSON.parse(JSON.stringify(mockArtists)));
-    }, API_DELAY);
-  });
+/**
+ * Get all artists
+ * @param {Object} params - Query parameters for filtering artists
+ * @returns {Promise} - Promise with the response data
+ */
+export const getArtists = (params = {}) => {
+  return apiClient.getAll(ENDPOINT, params)
+    .then(response => {
+      // Handle pagination if the response is paginated
+      if (response.results) {
+        return response.results;
+      }
+      return response;
+    });
 };
 
+/**
+ * Add a new artist
+ * @param {Object} artistData - Artist data to create
+ * @returns {Promise} - Promise with the created artist
+ */
 export const addArtist = (artistData) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const newArtist = {
-        ...artistData,
-        id: Date.now()
-      };
-      mockArtists = [newArtist, ...mockArtists];
-      resolve(JSON.parse(JSON.stringify(newArtist)));
-    }, API_DELAY);
-  });
+  return apiClient.create(ENDPOINT, artistData);
 };
 
+/**
+ * Update an existing artist
+ * @param {string|number} id - Artist ID
+ * @param {Object} artistData - Updated artist data
+ * @returns {Promise} - Promise with the updated artist
+ */
 export const updateArtist = (id, artistData) => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const index = mockArtists.findIndex(artist => artist.id === id);
-      if (index !== -1) {
-        mockArtists[index] = { ...mockArtists[index], ...artistData, id };
-        resolve(JSON.parse(JSON.stringify(mockArtists[index])));
-      } else {
-        reject(new Error(`Artist with id ${id} not found`));
-      }
-    }, API_DELAY);
-  });
+  return apiClient.update(ENDPOINT, id, artistData);
 };
 
+/**
+ * Delete an artist
+ * @param {string|number} id - Artist ID
+ * @returns {Promise} - Promise with the response
+ */
 export const deleteArtist = (id) => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const initialLength = mockArtists.length;
-      mockArtists = mockArtists.filter(artist => artist.id !== id);
-      if (mockArtists.length < initialLength) {
-        resolve({ success: true, id });
-      } else {
-        reject(new Error(`Artist with id ${id} not found`));
-      }
-    }, API_DELAY);
-  });
+  return apiClient.delete(ENDPOINT, id)
+    .then(() => ({ success: true, id }));
 };
