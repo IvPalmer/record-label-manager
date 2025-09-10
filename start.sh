@@ -1,4 +1,40 @@
 #!/bin/bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+echo "[start] Activating backend venv"
+source "$ROOT_DIR/backend/venv/bin/activate"
+
+echo "[start] Applying migrations"
+python "$ROOT_DIR/backend/manage.py" migrate --noinput
+
+if [[ "${REBUILD_DISTRIBUTION:-1}" == "1" ]]; then
+  echo "[start] Rebuilding distribution events from spreadsheets (Labelworx+Zebralution)"
+  python "$ROOT_DIR/backend/manage.py" rebuild_distribution_from_sources --label "Tropical Twista Records" --root "$ROOT_DIR/finance/sources/tropical-twista/distribution"
+  echo "[start] Building staging and DW"
+  python "$ROOT_DIR/backend/manage.py" build_staging_distribution
+  python "$ROOT_DIR/backend/manage.py" build_dw_revenue
+fi
+
+echo "[start] Starting backend (port 8000)"
+python "$ROOT_DIR/backend/manage.py" runserver 0.0.0.0:8000 > "$ROOT_DIR/logs/backend.log" 2>&1 &
+BACKEND_PID=$!
+
+echo "[start] Installing frontend deps if needed"
+cd "$ROOT_DIR"
+npm install --silent
+
+echo "[start] Starting frontend (Vite on 5174)"
+npm run dev -- --port 5174 > "$ROOT_DIR/logs/frontend.log" 2>&1 &
+FRONTEND_PID=$!
+
+echo "[start] Backend PID: $BACKEND_PID, Frontend PID: $FRONTEND_PID"
+echo "[start] Open http://localhost:5174"
+
+wait $BACKEND_PID $FRONTEND_PID
+
+#!/bin/bash
 
 # Record Label Manager - One-Click Startup Script
 # This script starts both backend and frontend and opens the browser

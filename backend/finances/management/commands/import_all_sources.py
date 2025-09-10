@@ -328,8 +328,22 @@ class Command(BaseCommand):
                         f"labelworx:{source_file.id}:{row_idx}:{track_artist}:{track_title}:{isrc}".encode()
                     ).hexdigest()[:64]
                     
-                    # Determine store name
-                    store_name = row.get('Store Name', '').strip()
+                    # Determine store name (canonicalize common variants)
+                    store_name = (row.get('Store Name', '') or '').strip()
+                    lower = store_name.lower()
+                    if 'youtube' in lower:
+                        store_name = 'YouTube'
+                    elif 'apple music' in lower or 'itunes' in lower:
+                        store_name = 'Apple Music'
+                    elif 'spotify' in lower:
+                        store_name = 'Spotify'
+                    elif 'tiktok' in lower:
+                        store_name = 'TikTok'
+                    elif 'tidal' in lower:
+                        store_name = 'TIDAL'
+                    elif 'beatport' in lower:
+                        store_name = 'Beatport'
+                    
                     store_obj = None
                     if store_name:
                         store_obj, _ = Store.objects.get_or_create(platform=platform, name=store_name)

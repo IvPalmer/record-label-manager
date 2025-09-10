@@ -117,7 +117,7 @@ class RevenueAnalysisViewSet(viewsets.ViewSet):
         # Consolidate common brand variants
         if 'youtube' in lower:
             return 'YouTube'
-        if 'apple music' in lower or 'itunes' in lower:
+        if 'apple music' in lower or 'applemusic' in lower or 'itunes' in lower:
             return 'Apple Music'
         if 'amazon' in lower:
             return 'Amazon Music'
@@ -133,6 +133,16 @@ class RevenueAnalysisViewSet(viewsets.ViewSet):
             return 'Spotify'
         if 'beatport' in lower:
             return 'Beatport'
+        if 'qobuz' in lower:
+            return 'Qobuz'
+        if 'yandex' in lower:
+            return 'Yandex'
+        if 'netease' in lower:
+            return 'Netease'
+        if 'traxsource' in lower:
+            return 'Traxsource'
+        if 'juno' in lower:
+            return 'Juno'
         return name
 
     @action(detail=False, methods=['get'])
@@ -366,8 +376,14 @@ class RevenueAnalysisViewSet(viewsets.ViewSet):
             'Distribution': '#667eea', 
             'Spotify': '#1DB954',
             'Apple Music': '#FA243C',
+            'iTunes': '#A2AAAD',
+            'YouTube': '#FF0000',
             'YouTube Music': '#FF0000',
-            'Amazon Music': '#FF9900'
+            'TikTok': '#69C9D0',
+            'TIDAL': '#000000',
+            'Beatport': '#A8E00F',
+            'Amazon Music': '#FF9900',
+            'Deezer': '#0F9ED8'
         }
         
         for row in platform_data:
@@ -381,7 +397,7 @@ class RevenueAnalysisViewSet(viewsets.ViewSet):
         
         # Top 5 + Others
         sorted_items = sorted(aggregated.items(), key=lambda kv: kv[1]['revenue'], reverse=True)
-        # Top 5 + Others
+        # Top 5 + Others (always ensure exactly 5 platforms before Others when available)
         top5 = sorted_items[:5]
         others = sorted_items[5:]
         others_total = sum((v['revenue'] for _, v in others), Decimal('0'))
