@@ -16,10 +16,45 @@ export const getArtists = (params = {}) => {
     .then(response => {
       // Handle pagination if the response is paginated
       if (response.results) {
-        return response.results;
+        const mappedResults = response.results.map(artist => ({
+          id: artist.id,
+          name: artist.name,
+          project: artist.project,
+          bio: artist.bio,
+          email: artist.email,
+          country: artist.country,
+          image_url: artist.image_url,
+          payment_address: artist.payment_address,
+          labels: artist.labels || [],
+          status: artist.status || 'Active', // Frontend-only field
+          created_at: artist.created_at,
+        }));
+        return mappedResults;
       }
       return response;
     });
+};
+
+/**
+ * Get a specific artist by ID
+ * @param {string|number} id - Artist ID
+ * @returns {Promise} - Promise with the artist data
+ */
+export const getArtist = (id) => {
+  return apiClient.getOne(ENDPOINT, id)
+    .then(artist => ({
+      id: artist.id,
+      name: artist.name,
+      project: artist.project,
+      bio: artist.bio,
+      email: artist.email,
+      country: artist.country,
+      image_url: artist.image_url,
+      payment_address: artist.payment_address,
+      labels: artist.labels || [],
+      status: artist.status || 'Active', // Frontend-only field
+      created_at: artist.created_at,
+    }));
 };
 
 /**
@@ -28,7 +63,20 @@ export const getArtists = (params = {}) => {
  * @returns {Promise} - Promise with the created artist
  */
 export const addArtist = (artistData) => {
-  return apiClient.create(ENDPOINT, artistData);
+  // Format the artist data to match the backend's expected structure
+  const formattedArtistData = {
+    name: artistData.name,
+    project: artistData.project,
+    bio: artistData.bio || '',
+    email: artistData.email || '',
+    country: artistData.country || '',
+    image_url: artistData.image_url || '',
+    payment_address: artistData.payment_address || '',
+    labels: artistData.labels || [],
+    // status is a frontend-only field, not saved to backend
+  };
+  
+  return apiClient.create(ENDPOINT, formattedArtistData);
 };
 
 /**
@@ -38,7 +86,20 @@ export const addArtist = (artistData) => {
  * @returns {Promise} - Promise with the updated artist
  */
 export const updateArtist = (id, artistData) => {
-  return apiClient.update(ENDPOINT, id, artistData);
+  // Format the artist data to match the backend's expected structure
+  const formattedArtistData = {
+    name: artistData.name,
+    project: artistData.project,
+    bio: artistData.bio || '',
+    email: artistData.email || '',
+    country: artistData.country || '',
+    image_url: artistData.image_url || '',
+    payment_address: artistData.payment_address || '',
+    labels: artistData.labels || [],
+    // status is a frontend-only field, not saved to backend
+  };
+  
+  return apiClient.update(ENDPOINT, id, formattedArtistData);
 };
 
 /**

@@ -1,32 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import styles from './Releases.module.css';
 import ReleaseForm from './ReleaseForm';
 import { getReleases, addRelease, updateRelease, deleteRelease } from '../api/releases';
 import { getArtists } from '../api/artists'; // Import artists API
+import { getLabels } from '../api/labels'; // Import labels API
 
 const Releases = () => {
   const navigate = useNavigate();
   const [releases, setReleases] = useState([]);
   const [artists, setArtists] = useState([]);
+  const [labels, setLabels] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingRelease, setEditingRelease] = useState(null);
 
-  // Fetch releases and artists on component mount
+  // Fetch releases, artists, and labels on component mount
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        // Fetch releases and artists in parallel
-        const [releasesData, artistsData] = await Promise.all([
+        // Fetch releases, artists, and labels in parallel
+        const [releasesData, artistsData, labelsData] = await Promise.all([
           getReleases(),
-          getArtists()
+          getArtists(),
+          getLabels()
         ]);
+        console.log('Loaded artists:', artistsData);
+        console.log('Loaded labels:', labelsData);
         setReleases(releasesData);
         setArtists(artistsData);
+        setLabels(labelsData);
       } catch (err) {
         console.error("Error fetching data:", err);
         setError('Failed to load data.');
@@ -121,6 +127,8 @@ const Releases = () => {
           onCancel={handleCloseForm}
           initialData={editingRelease}
           isSubmitting={isLoading} // Pass loading state to disable form buttons
+          artists={artists} // Pass artists data
+          labels={labels} // Pass labels data
         />
       )}
 
@@ -140,11 +148,22 @@ const Releases = () => {
             {releases.length > 0 ? (
               releases.map((release) => (
                 <tr key={release.id}>
-                  <td>{release.title}</td>
                   <td>
-                    {/* Display any known artists from label */}
+                    <Link to={`/releases/${release.id}`} className={styles.titleLink}>
+                      {release.title}
+                    </Link>
+                  </td>
+                  <td>
+                    {/* Display artists with links */}
                     {artists.filter(artist => artist.labels?.includes(release.labelId))
-                      .map(artist => artist.name).join(', ') || 'Various Artists'}
+                      .map((artist, index, arr) => (
+                        <React.Fragment key={artist.id}>
+                          <Link to={`/artists/${artist.id}`} className={styles.artistLink}>
+                            {artist.name}
+                          </Link>
+                          {index < arr.length - 1 ? ', ' : ''}
+                        </React.Fragment>
+                      )) || 'Various Artists'}
                   </td>
                   <td>{release.releaseDate}</td>
                   <td>

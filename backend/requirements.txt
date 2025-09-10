@@ -8,3 +8,14 @@ pillow==11.1.0
 psycopg2-binary==2.9.10
 PyJWT==2.9.0
 sqlparse==0.5.3
+gunicorn==21.2.0
+dj-database-url==2.1.0
+whitenoise==6.6.0
+python-dotenv==1.0.1
+openpyxl==3.1.2
+chardet==5.2.0
+python-dateutil==2.8.2
+pycountry==22.3.5
+Babel==2.12.1
+requests==2.31.0
+polars==0.20.2

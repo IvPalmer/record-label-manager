@@ -1,0 +1,165 @@
+[
+  {
+    "model": "auth.user",
+    "pk": 1,
+    "fields": {
+      "username": "admin",
+      "password": "pbkdf2_sha256$720000$YgIjvjJbHcxEiG26iKfCH4$EWEuOoYZ8aqnJmMxHplgQ4AfF4Q+xDSQNIxXbg2sIkU=",
+      "email": "admin@recordlabel.com",
+      "is_superuser": true,
+      "is_staff": true,
+      "is_active": true,
+      "date_joined": "2025-04-01T12:00:00Z",
+      "first_name": "Admin",
+      "last_name": "User"
+    }
+  },
+  {
+    "model": "api.label",
+    "pk": "9c8e2a60-9e3f-4e94-aa6e-c3f7d5451b8e",
+    "fields": {
+      "name": "Techno Trance Records",
+      "description": "A cutting-edge electronic music label focused on techno and trance",
+      "country": "Brazil",
+      "owner_id": 1,
+      "created_at": "2025-04-01T12:00:00Z"
+    }
+  },
+  {
+    "model": "api.artist",
+    "pk": "c7d85a49-b81e-4d28-a919-fb8b9e81c81b",
+    "fields": {
+      "name": "John Smith",
+      "project": "NightRider",
+      "bio": "Pioneering techno producer from São Paulo with a unique blend of deep and atmospheric sounds",
+      "email": "john@nightrider.com",
+      "country": "Brazil",
+      "image_url": "https://via.placeholder.com/300",
+      "created_at": "2025-04-01T12:00:00Z"
+    }
+  },
+  {
+    "model": "api.artist",
+    "pk": "e2d61a76-3d77-4f7b-be8f-d8a9e3a66c4b",
+    "fields": {
+      "name": "Maria Santos",
+      "project": "Electron Wave",
+      "bio": "Innovative DJ and producer specializing in progressive house and melodic techno",
+      "email": "maria@electronwave.com",
+      "country": "Brazil",
+      "image_url": "https://via.placeholder.com/300",
+      "created_at": "2025-04-01T12:00:00Z"
+    }
+  },
+
+  {
+    "model": "api.release",
+    "pk": "1f4ae27d-3a3c-4e3a-b8a6-7f9c59d2c4d1",
+    "fields": {
+      "title": "Midnight Journey EP",
+      "description": "A four-track EP exploring deep techno soundscapes",
+      "release_date": "2025-05-15",
+      "status": "scheduled",
+      "catalog_number": "TTR001",
+      "style": "Techno",
+      "tags": ["#DeepTechno", "#Atmospheric"],
+      "soundcloud_url": "https://soundcloud.com/example",
+      "bandcamp_url": "https://bandcamp.com/example",
+      "other_links": "{}",
+      "label_id": "9c8e2a60-9e3f-4e94-aa6e-c3f7d5451b8e",
+      "created_at": "2025-04-01T12:00:00Z"
+    }
+  },
+  {
+    "model": "api.release",
+    "pk": "6c2f3b91-5d8a-4e9b-be7f-8a1c2d3e4f5a",
+    "fields": {
+      "title": "Neon Lights",
+      "description": "A vibrant trance release with euphoric melodies",
+      "release_date": "2025-06-30",
+      "status": "scheduled",
+      "catalog_number": "TTR002",
+      "style": "Trance",
+      "tags": ["#ProgressiveTrance", "#Euphoric"],
+      "soundcloud_url": "https://soundcloud.com/example2",
+      "bandcamp_url": "https://bandcamp.com/example2",
+      "other_links": "{}",
+      "label_id": "9c8e2a60-9e3f-4e94-aa6e-c3f7d5451b8e",
+      "created_at": "2025-04-02T12:00:00Z"
+    }
+  },
+  {
+    "model": "api.track",
+    "pk": "a1b2c3d4-e5f6-4e9b-be7f-8a1c2d3e4f5a",
+    "fields": {
+      "title": "Into the Void",
+      "src_code": "BRAS123456789",
+      "audio_url": "https://example.com/audio1.mp3",
+      "is_streaming_single": true,
+      "streaming_release_date": "2025-05-01",
+      "tags": ["#DeepTechno", "#Dark"],
+      "release_id": "1f4ae27d-3a3c-4e3a-b8a6-7f9c59d2c4d1",
+      "artist_id": "c7d85a49-b81e-4d28-a919-fb8b9e81c81b",
+      "label_id": "9c8e2a60-9e3f-4e94-aa6e-c3f7d5451b8e",
+      "created_at": "2025-04-01T12:00:00Z"
+    }
+  },
+  {
+    "model": "api.track",
+    "pk": "b2c3d4e5-f6a7-4e9b-be7f-8a1c2d3e4f5a",
+    "fields": {
+      "title": "Lunar Eclipse",
+      "src_code": "BRAS234567890",
+      "audio_url": "https://example.com/audio2.mp3",
+      "is_streaming_single": false,
+      "streaming_release_date": null,
+      "tags": ["#DeepTechno", "#Ambient"],
+      "release_id": "1f4ae27d-3a3c-4e3a-b8a6-7f9c59d2c4d1",
+      "artist_id": "c7d85a49-b81e-4d28-a919-fb8b9e81c81b",
+      "label_id": "9c8e2a60-9e3f-4e94-aa6e-c3f7d5451b8e",
+      "created_at": "2025-04-01T12:00:00Z"
+    }
+  },
+  {
+    "model": "api.track",
+    "pk": "c3d4e5f6-a7b8-4e9b-be7f-8a1c2d3e4f5a",
+    "fields": {
+      "title": "Euphoria Rising",
+      "src_code": "BRAS345678901",
+      "audio_url": "https://example.com/audio3.mp3",
+      "is_streaming_single": true,
+      "streaming_release_date": "2025-06-15",
+      "tags": ["#ProgressiveTrance", "#Uplifting"],
+      "release_id": "6c2f3b91-5d8a-4e9b-be7f-8a1c2d3e4f5a",
+      "artist_id": "e2d61a76-3d77-4f7b-be8f-d8a9e3a66c4b",
+      "label_id": "9c8e2a60-9e3f-4e94-aa6e-c3f7d5451b8e",
+      "created_at": "2025-04-02T12:00:00Z"
+    }
+  },
+  {
+    "model": "api.calendarevent",
+    "pk": "d4e5f6a7-b8c9-4e9b-be7f-8a1c2d3e4f5a",
+    "fields": {
+      "title": "Midnight Journey EP Release",
+      "description": "Official release date for Midnight Journey EP",
+      "date": "2025-05-15",
+      "label_id": "9c8e2a60-9e3f-4e94-aa6e-c3f7d5451b8e",
+      "release_id": "1f4ae27d-3a3c-4e3a-b8a6-7f9c59d2c4d1",
+      "created_by": 1,
+      "created_at": "2025-04-01T12:00:00Z"
+    }
+  },
+  {
+    "model": "api.calendarevent",
+    "pk": "e5f6a7b8-c9d0-4e9b-be7f-8a1c2d3e4f5a",
+    "fields": {
+      "title": "Artwork Deadline - Neon Lights",
+      "description": "Final deadline for artwork submission",
+      "date": "2025-05-30",
+      "label_id": "9c8e2a60-9e3f-4e94-aa6e-c3f7d5451b8e",
+      "release_id": "6c2f3b91-5d8a-4e9b-be7f-8a1c2d3e4f5a",
+      "created_by": 1,
+      "created_at": "2025-04-02T12:00:00Z"
+    }
+  }
+]

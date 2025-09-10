@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { getArtists, addArtist, updateArtist, deleteArtist } from '../api/artists';
 import ArtistForm from './ArtistForm'; // Import the form component
 import styles from './Artists.module.css'; // Import CSS module
@@ -100,7 +100,11 @@ const Artists = () => {
           <tbody>
             {artists.map((artist) => (
               <tr key={artist.id}>
-                <td>{artist.name}</td>
+                <td>
+                  <Link to={`/artists/${artist.id}`} className={styles.nameLink}>
+                    {artist.name}
+                  </Link>
+                </td>
                 <td>{artist.email}</td>
                 <td>
                   <span className={`${styles.status} ${styles[artist.labels?.length ? 'signed' : 'unsigned']}`}>

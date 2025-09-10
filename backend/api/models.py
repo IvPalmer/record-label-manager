@@ -56,6 +56,7 @@ class Artist(models.Model):
     email = models.EmailField(blank=True)
     country = models.CharField(max_length=100, blank=True)
     image_url = models.URLField(blank=True)
+    payment_address = models.TextField(blank=True)  # Added payment address
     labels = models.ManyToManyField(Label, related_name='artists')
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -63,17 +64,31 @@ class Artist(models.Model):
         return self.project
 
 
+# Release Type Choices
+RELEASE_TYPE_CHOICES = (
+    ('album', 'Album'),
+    ('ep', 'EP'),
+    ('single', 'Single'),
+    ('compilation', 'Compilation'),
+)
+
 class Release(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
+    cover_url = models.URLField(blank=True)  # Added cover URL
     release_date = models.DateField()
+    pre_order_date = models.DateField(null=True, blank=True)  # Added pre-order date
     status = models.CharField(max_length=20, choices=RELEASE_STATUS_CHOICES, default='draft')
     catalog_number = models.CharField(max_length=20)
+    type = models.CharField(max_length=20, choices=RELEASE_TYPE_CHOICES, default='single')  # Added release type
     style = models.CharField(max_length=100, blank=True)
     tags = ArrayField(models.CharField(max_length=50), blank=True, default=list)
+    main_artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='main_releases', null=True, blank=True)  # Added main artist
+    featuring_artists = models.ManyToManyField(Artist, related_name='featured_releases', blank=True)  # Added featuring artists
     soundcloud_url = models.URLField(blank=True)
     bandcamp_url = models.URLField(blank=True)
+    google_drive_url = models.URLField(blank=True)  # Added Google Drive URL
     other_links = models.JSONField(blank=True, null=True)
     label = models.ForeignKey(Label, on_delete=models.CASCADE, related_name='releases')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -91,7 +106,9 @@ class Track(models.Model):
     streaming_release_date = models.DateField(null=True, blank=True)
     tags = ArrayField(models.CharField(max_length=50), blank=True, default=list)
     release = models.ForeignKey(Release, on_delete=models.CASCADE, related_name='tracks')
-    artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='tracks')
+    artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='tracks')  # Main artist
+    featuring_artists = models.ManyToManyField(Artist, related_name='featured_tracks', blank=True)  # Added featuring artists
+    remix_artist = models.ForeignKey(Artist, on_delete=models.SET_NULL, null=True, blank=True, related_name='remixed_tracks')  # Added remix artist
     label = models.ForeignKey(Label, on_delete=models.CASCADE, related_name='tracks')
     created_at = models.DateTimeField(auto_now_add=True)
     

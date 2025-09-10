@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getArtists, updateArtist, deleteArtist } from '../api/artists';
 import { getLabels } from '../api/labels';
+import { getReleases } from '../api/releases';
+import { getTracks } from '../api/tracks';
 import styles from './ArtistDetail.module.css';
 
 const ArtistDetail = () => {
@@ -9,6 +11,8 @@ const ArtistDetail = () => {
   const navigate = useNavigate();
   const [artist, setArtist] = useState(null);
   const [labels, setLabels] = useState([]);
+  const [releases, setReleases] = useState([]);
+  const [tracks, setTracks] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,6 +23,7 @@ const ArtistDetail = () => {
     email: '',
     country: '',
     image_url: '',
+    payment_address: '',
     labels: []
   });
 
@@ -28,9 +33,11 @@ const ArtistDetail = () => {
       setError(null);
       try {
         // Get all artists and find the one with the matching ID
-        const [artistsData, labelsData] = await Promise.all([
+        const [artistsData, labelsData, releasesData, tracksData] = await Promise.all([
           getArtists(),
-          getLabels()
+          getLabels(),
+          getReleases(),
+          getTracks()
         ]);
         
         // Try parsing as integer first, but also compare as string if that fails
@@ -45,6 +52,8 @@ const ArtistDetail = () => {
         
         setArtist(artistData);
         setLabels(labelsData);
+        setReleases(releasesData);
+        setTracks(tracksData);
         
         // Initialize form data with artist data
         setFormData({
@@ -54,6 +63,7 @@ const ArtistDetail = () => {
           email: artistData.email || '',
           country: artistData.country || '',
           image_url: artistData.image_url || '',
+          payment_address: artistData.payment_address || '',
           labels: artistData.labels || []
         });
       } catch (err) {
@@ -214,6 +224,18 @@ const ArtistDetail = () => {
               onChange={handleInputChange}
             />
           </div>
+          
+          <div className={styles.formGroup}>
+            <label htmlFor="payment_address">Payment Address</label>
+            <textarea
+              id="payment_address"
+              name="payment_address"
+              value={formData.payment_address}
+              onChange={handleInputChange}
+              rows="3"
+              placeholder="Bank details or payment information"
+            />
+          </div>
 
           <div className={styles.formGroup}>
             <label htmlFor="labels">Labels</label>
@@ -275,6 +297,10 @@ const ArtistDetail = () => {
                   {artist.labels?.length ? 'Signed' : 'Unsigned'}
                 </span>
               </div>
+              <div className={styles.infoItem}>
+                <span className={styles.label}>Created:</span>
+                <span>{artist.created_at ? new Date(artist.created_at).toLocaleString() : 'N/A'}</span>
+              </div>
             </div>
           </div>
 
@@ -308,6 +334,74 @@ const ArtistDetail = () => {
               </div>
             </div>
           )}
+          
+          {artist.payment_address && (
+            <div className={styles.infoSection}>
+              <h3>Payment Information</h3>
+              <div className={styles.paymentInfo}>
+                <p>{artist.payment_address}</p>
+              </div>
+            </div>
+          )}
+          
+          {/* Related Releases Section */}
+          <div className={styles.infoSection}>
+            <h3>Releases</h3>
+            {(() => {
+              // Find releases where this artist is the main artist or featuring artist
+              const artistReleases = releases.filter(release => 
+                (release.main_artist === artist.id) || 
+                (release.featuring_artists && release.featuring_artists.includes(artist.id))
+              );
+              
+              return artistReleases.length > 0 ? (
+                <div className={styles.releasesList}>
+                  {artistReleases.map(release => (
+                    <div key={release.id} className={styles.releaseItem}>
+                      <Link to={`/releases/${release.id}`} className={styles.releaseLink}>
+                        <strong>{release.title}</strong>
+                        {release.main_artist === artist.id ? ' (Main Artist)' : ' (Featured)'}
+                      </Link>
+                      <span className={styles.releaseMeta}>
+                        {release.release_date} - {release.catalog_number}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p>No releases found for this artist.</p>
+              );
+            })()}
+          </div>
+          
+          {/* Related Tracks Section */}
+          <div className={styles.infoSection}>
+            <h3>Tracks</h3>
+            {(() => {
+              // Find tracks where this artist is the main artist, featuring artist, or remix artist
+              const artistTracks = tracks.filter(track => 
+                (track.artist === artist.id) || 
+                (track.featuring_artists && track.featuring_artists.includes(artist.id)) ||
+                (track.remix_artist === artist.id)
+              );
+              
+              return artistTracks.length > 0 ? (
+                <div className={styles.tracksList}>
+                  {artistTracks.map(track => (
+                    <div key={track.id} className={styles.trackItem}>
+                      <Link to={`/tracks/${track.id}`} className={styles.trackLink}>
+                        <strong>{track.title}</strong>
+                        {track.artist === artist.id ? ' (Main Artist)' : 
+                         track.remix_artist === artist.id ? ' (Remix)' : ' (Featured)'}
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p>No tracks found for this artist.</p>
+              );
+            })()}
+          </div>
         </div>
       )}
     </div>

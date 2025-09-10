@@ -73,6 +73,7 @@ class LabelAdmin(admin.ModelAdmin):
 
 class ArtistTrackInline(admin.TabularInline):
     model = Track
+    fk_name = 'artist'  # Specify which ForeignKey to use
     fields = ('title', 'release', 'audio_url', 'is_streaming_single', 'streaming_release_date')
     readonly_fields = ('release',)
     extra = 1
@@ -87,8 +88,11 @@ class ArtistAdmin(admin.ModelAdmin):
     filter_horizontal = ('labels',)
     readonly_fields = ('release_list',)
     fieldsets = (
-        (None, {
-            'fields': ('name', 'project', 'bio', 'email', 'country', 'image_url', 'labels')
+        ('Artist Information', {
+            'fields': ('name', 'project', 'bio', 'email', 'country', 'image_url', 'payment_address')
+        }),
+        ('Label Associations', {
+            'fields': ('labels',)
         }),
         ('Releases Featuring This Artist', {
             'fields': ('release_list',)
@@ -141,33 +145,47 @@ class ArtistAdmin(admin.ModelAdmin):
 
 class TrackInline(admin.TabularInline):
     model = Track
-    fields = ('title', 'artist', 'is_streaming_single', 'streaming_release_date', 'audio_url')
+    fields = ('title', 'artist', 'src_code', 'is_streaming_single', 'streaming_release_date', 'audio_url')
     extra = 1
     verbose_name = "Track"
     verbose_name_plural = "Tracks on this release"
 
 @admin.register(Release)
 class ReleaseAdmin(admin.ModelAdmin):
-    list_display = ('title', 'catalog_number', 'release_date', 'status', 'label', 'artist_list_display', 'track_count')
+    list_display = ('title', 'catalog_number', 'release_date', 'status', 'label', 'main_artist_display', 'track_count')
     search_fields = ('title', 'catalog_number')
-    list_filter = ('status', 'release_date', 'label')
+    list_filter = ('status', 'release_date', 'label', 'type')
     date_hierarchy = 'release_date'
     readonly_fields = ('created_at', 'track_count', 'artist_list_full')
+    filter_horizontal = ('featuring_artists',)
     fieldsets = (
-        (None, {
-            'fields': ('title', 'description', 'release_date', 'status', 'catalog_number', 'style', 'tags', 'label')
+        ('Basic Information', {
+            'fields': ('title', 'description', 'cover_url', 'catalog_number', 'type')
         }),
-        ('Links', {
-            'fields': ('soundcloud_url', 'bandcamp_url', 'other_links')
+        ('Release Schedule', {
+            'fields': ('release_date', 'pre_order_date', 'status')
         }),
         ('Artists', {
-            'fields': ('artist_list_full',)
+            'fields': ('main_artist', 'featuring_artists', 'artist_list_full')
+        }),
+        ('Label and Categorization', {
+            'fields': ('label', 'style', 'tags')
+        }),
+        ('Links', {
+            'fields': ('soundcloud_url', 'bandcamp_url', 'google_drive_url', 'other_links')
         }),
         ('Metadata', {
             'fields': ('created_at',)
         }),
     )
     inlines = [TrackInline]
+    
+    def main_artist_display(self, obj):
+        if obj.main_artist:
+            artist_url = reverse('admin:api_artist_change', args=[obj.main_artist.id])
+            return format_html('<a href="{}">{}</a>', artist_url, obj.main_artist.project)
+        return '-'    
+    main_artist_display.short_description = 'Main Artist'
     
     def track_count(self, obj):
         count = Track.objects.filter(release=obj).count()
@@ -214,10 +232,36 @@ class ReleaseAdmin(admin.ModelAdmin):
 
 @admin.register(Track)
 class TrackAdmin(admin.ModelAdmin):
-    list_display = ('title', 'release', 'artist', 'label', 'is_streaming_single')
+    list_display = ('title', 'release', 'artist', 'remix_artist_display', 'src_code', 'label', 'is_streaming_single')
     search_fields = ('title', 'src_code')
     list_filter = ('is_streaming_single', 'streaming_release_date', 'release', 'artist', 'label')
     readonly_fields = ('created_at',)
+    filter_horizontal = ('featuring_artists',)
+    
+    fieldsets = (
+        ('Track Information', {
+            'fields': ('title', 'audio_url', 'src_code')
+        }),
+        ('Artists', {
+            'fields': ('artist', 'featuring_artists', 'remix_artist')
+        }),
+        ('Release Information', {
+            'fields': ('release', 'label')
+        }),
+        ('Streaming Information', {
+            'fields': ('is_streaming_single', 'streaming_release_date')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'tags')
+        }),
+    )
+    
+    def remix_artist_display(self, obj):
+        if obj.remix_artist:
+            artist_url = reverse('admin:api_artist_change', args=[obj.remix_artist.id])
+            return format_html('<a href="{}">{}</a>', artist_url, obj.remix_artist.project)
+        return '-'
+    remix_artist_display.short_description = 'Remixer'
 
 @admin.register(Mixtape)
 class MixtapeAdmin(admin.ModelAdmin):
@@ -244,7 +288,25 @@ class CalendarEventAdmin(admin.ModelAdmin):
 
 @admin.register(Demo)
 class DemoAdmin(admin.ModelAdmin):
-    list_display = ('title', 'artist_name', 'status', 'label', 'submitted_by', 'submitted_at')
+    list_display = ('title', 'artist_name', 'status', 'audio_url_display', 'label', 'submitted_by', 'submitted_at')
     search_fields = ('title', 'artist_name')
     list_filter = ('status', 'label', 'submitted_at')
     readonly_fields = ('submitted_at',)
+    
+    fieldsets = (
+        ('Demo Information', {
+            'fields': ('title', 'artist_name', 'audio_url', 'status')
+        }),
+        ('Submission Details', {
+            'fields': ('label', 'submitted_by', 'submitted_at')
+        }),
+        ('Review', {
+            'fields': ('review_notes',)
+        }),
+    )
+    
+    def audio_url_display(self, obj):
+        if obj.audio_url:
+            return format_html('<a href="{}" target="_blank">Listen</a>', obj.audio_url)
+        return '-'
+    audio_url_display.short_description = 'Audio'

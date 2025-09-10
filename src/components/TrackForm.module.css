@@ -1,0 +1,236 @@
+.formOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* Ensure it's above other content */
+}
+
+.trackForm {
+  background-color: #fff;
+  padding: 30px 40px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 800px; /* Increased width to accommodate more fields */
+  font-family: sans-serif;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.trackForm h2 {
+  margin-top: 0;
+  margin-bottom: 25px;
+  text-align: center;
+  color: #333;
+  font-size: 1.6em;
+}
+
+/* Form sections for grouping related fields */
+.formSection {
+  margin-bottom: 30px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 20px;
+}
+
+.formSection h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #444;
+  font-size: 1.2em;
+  font-weight: 600;
+}
+
+.formSection:last-child {
+  border-bottom: none;
+}
+
+.formGroup {
+  margin-bottom: 20px;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #555;
+  font-size: 0.95em;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.checkboxLabel input[type="checkbox"] {
+  width: auto;
+  margin-right: 8px;
+}
+
+.formGroup input[type="text"],
+.formGroup input[type="email"],
+.formGroup input[type="url"],
+.formGroup input[type="date"],
+.formGroup textarea,
+.formGroup select { 
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box; /* Include padding and border in element's total width/height */
+  font-size: 1em;
+}
+
+.formGroup input:focus,
+.formGroup textarea:focus,
+.formGroup select:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Style for multiple select fields */
+.multiSelect {
+  height: 120px;
+}
+
+/* Styling for small helper text */
+.formGroup small {
+  display: block;
+  margin-top: 5px;
+  color: #888;
+  font-size: 0.85em;
+}
+
+/* Audio preview container */
+.audioPreview {
+  margin-top: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px;
+  background-color: #f9f9f9;
+}
+
+.audioPreview audio {
+  width: 100%;
+}
+
+/* Tag styling */
+.tagContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  min-height: 40px;
+}
+
+.tag {
+  display: flex;
+  align-items: center;
+  background-color: #e1f5fe;
+  color: #0277bd;
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 0.9em;
+}
+
+.tagRemove {
+  background: none;
+  border: none;
+  color: #0277bd;
+  margin-left: 4px;
+  cursor: pointer;
+  font-size: 1.2em;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+.tagInput {
+  flex: 1;
+  min-width: 100px;
+  border: none !important;
+  padding: 4px 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.formActions {
+  margin-top: 30px;
+  display: flex;
+  justify-content: flex-end; /* Align buttons to the right */
+  gap: 10px; /* Space between buttons */
+  position: sticky;
+  bottom: 0;
+  background-color: #fff;
+  padding-top: 15px;
+  box-shadow: 0 -4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.submitButton,
+.cancelButton {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+.submitButton {
+  background-color: #28a745; /* Green */
+  color: white;
+}
+
+.submitButton:hover {
+  background-color: #218838;
+  transform: translateY(-1px);
+}
+
+.submitButton:disabled {
+  background-color: #88c997;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.cancelButton {
+  background-color: #6c757d; /* Grey */
+  color: white;
+}
+
+.cancelButton:hover {
+  background-color: #5a6268;
+  transform: translateY(-1px);
+}
+
+.cancelButton:disabled {
+  background-color: #a1a8ae;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .trackForm {
+    padding: 20px 25px;
+    max-width: 600px;
+  }
+}
+
+@media (max-width: 480px) {
+  .trackForm {
+    padding: 15px 20px;
+    border-radius: 0;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+  }
+}

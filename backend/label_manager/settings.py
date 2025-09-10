@@ -11,9 +11,14 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from project root .env if present
+load_dotenv(dotenv_path=BASE_DIR.parent / '.env')
 
 
 # Quick-start development settings - unsuitable for production
@@ -45,6 +50,7 @@ INSTALLED_APPS = [
     
     # Project apps
     'api',
+    'finances',
 ]
 
 MIDDLEWARE = [
@@ -81,15 +87,15 @@ WSGI_APPLICATION = 'label_manager.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# PostgreSQL Database Configuration
+# PostgreSQL Database Configuration (env override supported)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'record_label_manager',
-        'USER': 'palmer',  # Using your system username for macOS PostgreSQL
-        'PASSWORD': '',     # Usually empty on macOS with peer authentication
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.getenv('POSTGRES_DB', 'record_label_manager'),
+        'USER': os.getenv('POSTGRES_USER', 'palmer'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
+        'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
+        'PORT': os.getenv('POSTGRES_PORT', '5432'),
     }
 }
 
@@ -178,4 +184,18 @@ from datetime import timedelta
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+}
+
+# Bandcamp API settings
+BANDCAMP_CLIENT_ID = os.getenv('BANDCAMP_CLIENT_ID')
+BANDCAMP_CLIENT_SECRET = os.getenv('BANDCAMP_CLIENT_SECRET')
+BAND_ID = os.getenv('BAND_ID')
+
+# Cache configuration for Bandcamp API tokens
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+        'TIMEOUT': 1800,  # 30 minutes
+    }
 }

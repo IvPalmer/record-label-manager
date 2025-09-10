@@ -3,7 +3,12 @@
  * Provides base configuration for API requests
  */
 
-const API_BASE_URL = 'http://localhost:8001/api';
+// Determine if we're in Docker or development environment
+// In Docker, backend is accessed via container name, in dev via localhost
+const isProduction = process.env.NODE_ENV === 'production';
+const API_BASE_URL = isProduction 
+  ? '/api' // In Docker, Nginx handles proxying to backend
+  : 'http://localhost:8001/api';
 
 /**
  * Handles API responses and errors consistently
@@ -79,15 +84,35 @@ const apiClient = {
    * @returns {Promise} - Promise with the response data
    */
   create: async (endpoint, data) => {
-    const response = await fetch(`${API_BASE_URL}/${endpoint}/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-    
-    return handleResponse(response);
+    console.log(`API Create Request to ${API_BASE_URL}/${endpoint}/`, data);
+    try {
+      const response = await fetch(`${API_BASE_URL}/${endpoint}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+        credentials: 'include', // Include cookies for authentication if needed
+      });
+      
+      // Debug response
+      console.log('Response status:', response.status);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API error response:', errorText);
+        try {
+          const errorJson = JSON.parse(errorText);
+          console.error('Parsed error:', errorJson);
+        } catch (e) {
+          // Text wasn't JSON
+        }
+      }
+      
+      return handleResponse(response);
+    } catch (error) {
+      console.error('API call error:', error);
+      throw error;
+    }
   },
   
   /**

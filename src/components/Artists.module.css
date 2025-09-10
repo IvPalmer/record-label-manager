@@ -99,6 +99,20 @@
   background-color: #6c757d; /* Gray */
 }
 
+/* Link Styles */
+.nameLink {
+  color: #0275d8;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+  display: inline-block;
+}
+
+.nameLink:hover {
+  color: #01447e;
+  text-decoration: underline;
+}
+
 .pending {
   background-color: #ffc107; /* Yellow */
   color: #333;

@@ -16,19 +16,22 @@ This document outlines the necessary backend implementation steps for the Record
   - One deadline event 5 days from now
 
 ## General Setup
-- [ ] Set up Django project and app structure.
-- [ ] Configure PostgreSQL database connection.
-- [ ] Set up Django REST Framework (DRF).
-- [ ] Implement user authentication (e.g., Django Allauth, DRF Knox/SimpleJWT).
+- [x] Set up Django project and app structure.
+- [x] Configure PostgreSQL database connection.
+- [x] Set up Django REST Framework (DRF).
+- [x] Implement user authentication with SimpleJWT.
 - [x] Configure CORS headers.
+- [x] Set up Django Admin interface.
+- [x] Configure static files handling.
 - [ ] Set up media file handling (for audio uploads, documents).
 
 ## API Endpoints
 
 ### Releases (`/api/releases/`)
-- [ ] **Model:** Define `Release` model (title, artist, releaseDate, type, status, artworkUrl, catalogNumber, etc.).
-- [ ] **Serializer:** Create `ReleaseSerializer`.
-- [ ] **Views:** Implement `ViewSet` for CRUD operations (List, Create, Retrieve, Update, Destroy).
+- [x] **Model:** Defined `Release` model with all necessary fields.
+- [x] **Serializer:** Created `ReleaseSerializer`.
+- [x] **Views:** Implemented `ViewSet` for CRUD operations.
+- [x] **Admin Interface:** Set up comprehensive admin interface with inline editing of tracks.
 - [ ] **Permissions:** Ensure only authenticated users can manage releases.
 - [ ] **Filtering/Sorting:** Add filtering by status, artist, date range; sorting options.
 
@@ -54,30 +57,47 @@ This document outlines the necessary backend implementation steps for the Record
 
 ### Calendar (`/api/calendar/`)
 - [x] **Frontend Mock:** Basic CRUD operations implemented with mock data
-- [ ] **Model:** Define `CalendarEvent` model (title, date, type (Release, Deadline, Meeting), description, relatedRelease/Artist?).
-- [ ] **Serializer:** Create `CalendarEventSerializer`.
-- [ ] **Views:** Implement `ViewSet` for CRUD operations.
+- [x] **Model:** Define `CalendarEvent` model (title, date, type (Release, Deadline, Meeting), description, relatedRelease/Artist?).
+- [x] **Serializer:** Create `CalendarEventSerializer`.
+- [x] **Views:** Implement `ViewSet` for CRUD operations.
+- [x] **Admin Interface:** Set up admin interface for calendar events.
 - [ ] **Filtering:** Allow filtering by date range, event type.
 
 ### Documents (`/api/documents/`)
-- [ ] **Model:** Define `Document` model (title, file, uploadDate, category (Contract, Invoice, Artwork), relatedRelease/Artist?).
-- [ ] **Serializer:** Create `DocumentSerializer` (handle file uploads).
-- [ ] **Views:** Implement `ViewSet` for CRUD operations.
+- [x] **Model:** Define `Document` model (title, file, uploadDate, category (Contract, Invoice, Artwork), relatedRelease/Artist?).
+- [x] **Serializer:** Create `DocumentSerializer` (handle file uploads).
+- [x] **Views:** Implement `ViewSet` for CRUD operations.
+- [x] **Admin Interface:** Set up admin interface for documents.
 - [ ] **Permissions:** Define access control for different document types/categories.
 - [ ] **File Storage:** Configure storage for documents.
 
 ### Settings (`/api/settings/` or `/api/users/me/`)
-- [ ] **Model:** Extend User model or create a `UserProfile` model for application-specific settings.
-- [ ] **Serializer:** Create appropriate serializers.
-- [ ] **Views:** Implement views for retrieving and updating user settings/profile.
+- [x] **Model:** Created `UserProfile` model for application-specific settings (role, preferences).
+- [x] **Serializer:** Created UserProfileSerializer.
+- [x] **Views:** Implemented ViewSet for user profiles.
+- [x] **Admin Interface:** Extended the User admin with UserProfile information.
 
 ## Testing
 - [ ] Implement unit tests for models, serializers, and views.
 - [ ] Implement integration tests for API endpoints.
 
 ## Deployment
-- [ ] Choose hosting provider (e.g., Heroku, AWS, DigitalOcean).
-- [ ] Configure production database.
-- [ ] Set up CI/CD pipeline.
-- [ ] Configure web server (e.g., Gunicorn + Nginx).
-- [ ] Manage static and media files in production.
+- [x] Set up Docker containers for development/production
+- [x] Configure PostgreSQL database in Docker
+- [x] Set up Nginx as a web server in Docker
+- [x] Configure static files serving with Whitenoise
+- [x] Set up proper communication between containers
+- [ ] Configure production environment variables
+- [ ] Set up CI/CD pipeline
+- [ ] Configure cloud hosting provider (e.g., AWS, DigitalOcean)
+
+## Frontend Admin Interface
+- [x] Create requirements documentation for Django-like admin UI
+- [x] Create technical implementation plan for frontend admin
+- [ ] Implement base components (layout, lists, forms)
+- [ ] Create model-specific configurations for each data type
+- [ ] Implement list views with sorting and filtering
+- [ ] Implement detail/edit forms with validation
+- [ ] Add related model management (many-to-many, inline forms)
+- [ ] Implement authentication and permission handling
+- [ ] Create a dashboard with key metrics
