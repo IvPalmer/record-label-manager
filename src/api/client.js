@@ -6,9 +6,18 @@
 // Determine if we're in Docker or development environment
 // In Docker, backend is accessed via container name, in dev via localhost
 const isProduction = process.env.NODE_ENV === 'production';
-const API_BASE_URL = isProduction 
+
+// Prefer a Vite-provided override when running locally so the frontend can
+// target whichever backend port is active (defaulting to Django's 8000).
+const devApiBaseUrl =
+  (typeof import.meta !== 'undefined' &&
+    import.meta.env &&
+    import.meta.env.VITE_API_BASE_URL) ||
+  'http://localhost:8000/api';
+
+const API_BASE_URL = isProduction
   ? '/api' // In Docker, Nginx handles proxying to backend
-  : 'http://localhost:8001/api';
+  : devApiBaseUrl;
 
 /**
  * Handles API responses and errors consistently
