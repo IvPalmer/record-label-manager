@@ -60,7 +60,7 @@ This document outlines the necessary backend implementation steps for the Record
 - [x] **Model:** Define `CalendarEvent` model (title, date, type (Release, Deadline, Meeting), description, relatedRelease/Artist?).
 - [x] **Serializer:** Create `CalendarEventSerializer`.
 - [x] **Views:** Implement `ViewSet` for CRUD operations.
-- [x] **Admin Interface:** Set up admin interface for calendar events.
+- [x] Align frontend API base URL (currently points to `http://localhost:8001/api`; backend serves 8000 in dev).
 - [ ] **Filtering:** Allow filtering by date range, event type.
 
 ### Documents (`/api/documents/`)
