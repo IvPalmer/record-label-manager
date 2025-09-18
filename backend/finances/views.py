@@ -22,92 +22,12 @@ class RevenueAnalysisViewSet(viewsets.ViewSet):
     """
 
     def get_queryset(self):
-        queryset = RevenueEvent.objects.select_related('platform', 'store', 'source_file').all()
-        
-        # Apply filters
-        year = self.request.query_params.get('year')
-        if year and year != 'all':
-            queryset = queryset.filter(occurred_at__year=year)
-        
-        quarter = self.request.query_params.get('quarter')
-        if quarter and quarter != 'all':
-            queryset = queryset.extra(
-                where=["EXTRACT(quarter FROM occurred_at) = %s"],
-                params=[quarter]
-            )
-        
-        month = self.request.query_params.get('month')
-        if month and month != 'all':
-            queryset = queryset.filter(occurred_at__month=month)
-        
-        platform = self.request.query_params.get('platform')
-        if platform and platform != 'all':
-            queryset = queryset.filter(platform__name__icontains=platform)
-        
-        artist = self.request.query_params.get('artist')
-        if artist:
-            queryset = queryset.filter(track_artist_name__icontains=artist)
-        
-        track = self.request.query_params.get('track')
-        if track:
-            queryset = queryset.filter(track_title__icontains=track)
-        
-        catalog = self.request.query_params.get('catalog')
-        if catalog:
-            queryset = queryset.filter(catalog_number__icontains=catalog)
-        
-        # Filter by data source type (CSV vs API)
-        source_type = self.request.query_params.get('source_type')
-        if source_type == 'api':
-            queryset = queryset.filter(source_file__datasource__name__icontains='api')
-        elif source_type == 'csv':
-            queryset = queryset.exclude(source_file__datasource__name__icontains='api')
-        
-        return queryset
+        # Return unfiltered revenue events - frontend handles all filtering
+        return RevenueEvent.objects.select_related('platform', 'store', 'source_file').all()
 
     def get_dw_queryset(self):
-        queryset = DwFactRevenue.objects.all()
-
-        year = self.request.query_params.get('year')
-        if year and year != 'all':
-            queryset = queryset.filter(occurred_at__year=year)
-
-        quarter = self.request.query_params.get('quarter')
-        if quarter and quarter != 'all':
-            # quarter from month math
-            queryset = queryset.extra(
-                where=["EXTRACT(quarter FROM occurred_at) = %s"],
-                params=[quarter]
-            )
-
-        month = self.request.query_params.get('month')
-        if month and month != 'all':
-            queryset = queryset.filter(occurred_at__month=month)
-
-        platform = self.request.query_params.get('platform')
-        if platform and platform != 'all':
-            queryset = queryset.filter(platform__icontains=platform)
-
-        artist = self.request.query_params.get('artist')
-        if artist:
-            queryset = queryset.filter(artist_name__icontains=artist)
-
-        track = self.request.query_params.get('track')
-        if track:
-            queryset = queryset.filter(track_title__icontains=track)
-
-        catalog = self.request.query_params.get('catalog')
-        if catalog:
-            queryset = queryset.filter(catalog_number__icontains=catalog)
-
-        # Map source_type to dw source column
-        source_type = self.request.query_params.get('source_type')
-        if source_type == 'api':
-            queryset = queryset.filter(source__icontains='bandcamp')
-        elif source_type == 'csv':
-            queryset = queryset.exclude(source__icontains='bandcamp')
-
-        return queryset
+        """Return unfiltered data warehouse facts - frontend handles all filtering"""
+        return DwFactRevenue.objects.all()
 
     def canonical_store(self, store_name: str) -> str:
         if not store_name:
@@ -188,8 +108,120 @@ class RevenueAnalysisViewSet(viewsets.ViewSet):
         })
 
     @action(detail=False, methods=['get'])
+    def monthly_overview(self, request):
+        """Get monthly aggregated overview data for the main table"""
+        # Get currency parameter
+        currency = request.GET.get('currency', 'BRL').upper()
+        if currency not in ['BRL', 'USD', 'EUR']:
+            currency = 'BRL'
+        
+        # Map currency to field name
+        currency_field_map = {
+            'BRL': 'revenue_brl',
+            'USD': 'revenue_usd', 
+            'EUR': 'revenue_eur'
+        }
+        currency_field = currency_field_map[currency]
+        
+        queryset = self.get_dw_queryset()
+        
+        # Group by month and aggregate
+        from django.db.models.functions import TruncMonth
+        monthly_data = queryset.annotate(
+            month=TruncMonth('occurred_at')
+        ).values('month').annotate(
+            total_revenue=Sum(currency_field),
+            total_downloads=Sum('quantity', filter=Q(platform='Bandcamp') | Q(store__icontains='Beatport')),
+            total_streams=Sum('quantity', filter=~Q(platform='Bandcamp') & ~Q(store__icontains='Beatport')),
+            total_transactions=Count('id'),
+            unique_artists=Count('artist_name', distinct=True),
+            unique_tracks=Count('track_title', distinct=True),
+            unique_catalogs=Count('catalog_number', distinct=True),
+            avg_per_transaction=Avg(currency_field)
+        ).order_by('-month')
+        
+        # Add platform breakdown for each month
+        result_data = []
+        for month_data in monthly_data:
+            month_date = month_data['month']
+            if not month_date:
+                continue
+                
+            # Get platform breakdown for this month
+            month_platforms = queryset.filter(
+                occurred_at__year=month_date.year,
+                occurred_at__month=month_date.month
+            ).values('platform', 'store').annotate(
+                revenue=Sum(currency_field),
+                quantity=Sum('quantity')
+            ).order_by('-revenue')
+            
+            # Get top release for this month
+            top_release = queryset.filter(
+                occurred_at__year=month_date.year,
+                occurred_at__month=month_date.month
+            ).exclude(track_title='').values('track_title').annotate(
+                revenue=Sum(currency_field)
+            ).order_by('-revenue').first()
+            
+            # Get top platforms for this month
+            top_platforms = []
+            total_month_revenue = month_data['total_revenue'] or 0
+            
+            for platform in month_platforms[:3]:  # Top 3 platforms
+                platform_name = platform['platform']
+                store_name = self.canonical_store(platform.get('store'))
+                display_name = 'Bandcamp' if platform_name == 'Bandcamp' else (store_name or platform_name)
+                
+                platform_revenue = platform['revenue'] or 0
+                percentage = (platform_revenue / total_month_revenue * 100) if total_month_revenue > 0 else 0
+                quantity = platform['quantity'] or 0
+                
+                # Determine if it's downloads or streams
+                is_download_platform = platform_name == 'Bandcamp' or 'beatport' in (store_name or '').lower()
+                metric_type = 'downloads' if is_download_platform else 'streams'
+                
+                top_platforms.append({
+                    'name': display_name,
+                    'revenue': str(platform_revenue),
+                    'percentage': round(percentage, 1),
+                    'quantity': quantity,
+                    'metric_type': metric_type
+                })
+            
+            result_data.append({
+                'month': str(month_date),
+                'year': month_date.year,
+                'month_name': month_date.strftime('%B %Y'),
+                'total_revenue': str(month_data['total_revenue'] or 0),
+                'total_downloads': month_data['total_downloads'] or 0,
+                'total_streams': month_data['total_streams'] or 0,
+                'total_transactions': month_data['total_transactions'] or 0,
+                'unique_artists': month_data['unique_artists'] or 0,
+                'unique_tracks': month_data['unique_tracks'] or 0,
+                'unique_catalogs': month_data['unique_catalogs'] or 0,
+                'avg_per_transaction': str(month_data['avg_per_transaction'] or 0),
+                'top_release': top_release['track_title'] if top_release else 'N/A',
+                'top_platforms': top_platforms
+            })
+        
+        return Response(result_data)
+
+    @action(detail=False, methods=['get'])
     def detailed_overview(self, request):
         """Get detailed overview data for the main table"""
+        # Get currency parameter
+        currency = request.GET.get('currency', 'BRL').upper()
+        if currency not in ['BRL', 'USD', 'EUR']:
+            currency = 'BRL'
+        
+        # Map currency to field name
+        currency_field_map = {
+            'BRL': 'revenue_brl',
+            'USD': 'revenue_usd', 
+            'EUR': 'revenue_eur'
+        }
+        currency_field = currency_field_map[currency]
         # Switch to DW-backed fact table for unified data
         queryset = self.get_dw_queryset()
         page = int(request.query_params.get('page', 1))
@@ -199,8 +231,8 @@ class RevenueAnalysisViewSet(viewsets.ViewSet):
         offset = (page - 1) * page_size
         total_count = queryset.count()
         
-        # Get paginated results
-        events = queryset.order_by('-revenue_base')[offset:offset + page_size]
+        # Get paginated results - order by the selected currency field
+        events = queryset.order_by(f'-{currency_field}')[offset:offset + page_size]
         
         detailed_data = []
         for event in events:
@@ -239,8 +271,8 @@ class RevenueAnalysisViewSet(viewsets.ViewSet):
                 'platform': platform_display,
                 'downloads': downloads,
                 'streams': streams,
-                'revenue': str(event.revenue_base),
-                'currency': event.base_ccy,
+                'revenue': str(getattr(event, currency_field)),
+                'currency': currency,
                 'original_amount': str(event.revenue_base),
                 'source_file': ''
             })
@@ -290,6 +322,19 @@ class RevenueAnalysisViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def monthly_revenue_chart(self, request):
         """Get daily revenue data for line chart with more granular view"""
+        # Get currency parameter
+        currency = request.GET.get('currency', 'BRL').upper()
+        if currency not in ['BRL', 'USD', 'EUR']:
+            currency = 'BRL'
+        
+        # Map currency to field name
+        currency_field_map = {
+            'BRL': 'revenue_brl',
+            'USD': 'revenue_usd', 
+            'EUR': 'revenue_eur'
+        }
+        currency_field = currency_field_map[currency]
+        
         queryset = self.get_dw_queryset()
         
         # Aggregate by month, and use store name for distribution
@@ -297,59 +342,106 @@ class RevenueAnalysisViewSet(viewsets.ViewSet):
         daily_data = queryset.annotate(
             period=TruncMonth('occurred_at')
         ).values('period', 'platform', 'store').annotate(
-            revenue=Sum('revenue_base'),
+            revenue=Sum(currency_field),
             transactions=Count('id')
         ).order_by('period', 'platform', 'store')
         
         # Build daily chart data
         chart_data = {}
         
+        # First pass: collect all platforms and determine date range
+        all_platforms = set()
+        min_date = None
+        max_date = None
+        
+        for item in daily_data:
+            if item['period']:
+                date_obj = item['period']
+                platform_name = item['platform']
+                store_name = self.canonical_store(item.get('store'))
+                
+                # Track date range
+                if min_date is None or date_obj < min_date:
+                    min_date = date_obj
+                if max_date is None or date_obj > max_date:
+                    max_date = date_obj
+                
+                # Bandcamp single series; Distribution broken down by store
+                key = 'Bandcamp' if platform_name == 'Bandcamp' else (store_name or None)
+                if key:
+                    all_platforms.add(key)
+        
+        # Generate continuous monthly timeline from min to max date
+        from datetime import datetime, timedelta
+        from dateutil.relativedelta import relativedelta
+        
+        chart_data = {}
+        if min_date and max_date:
+            current_date = min_date
+            while current_date <= max_date:
+                date_str = str(current_date)
+                chart_data[date_str] = {'period': date_str}
+                for platform in all_platforms:
+                    chart_data[date_str][platform] = None
+                current_date += relativedelta(months=1)
+        
+        # Second pass: add actual revenue data
         for item in daily_data:
             if item['period'] and item['revenue']:
-                # 'period' is a date when using TruncMonth on a DateField in DW
                 date_str = str(item['period'])
                 platform_name = item['platform']
                 store_name = self.canonical_store(item.get('store'))
                 revenue = float(item['revenue'])
                 
-                if date_str not in chart_data:
-                    chart_data[date_str] = {'period': date_str}
-                
-                # Only add if revenue > 0
-                if revenue > 0:
-                    # Bandcamp single series; Distribution broken down by store
-                    key = 'Bandcamp' if platform_name == 'Bandcamp' else (store_name or None)
-                    if not key:
-                        continue
-                    chart_data[date_str][key] = chart_data[date_str].get(key, 0) + revenue
+                # Bandcamp single series; Distribution broken down by store
+                key = 'Bandcamp' if platform_name == 'Bandcamp' else (store_name or None)
+                if key and revenue > 0:
+                    if chart_data[date_str][key] is None:
+                        chart_data[date_str][key] = revenue
+                    else:
+                        chart_data[date_str][key] += revenue
         
-        # Group distribution series to top 5 stores + Others across the entire span
-        # 1) compute totals per key (excluding Bandcamp)
-        totals = {}
+        # Apply top 5 distribution platforms + Others aggregation
+        # 1) Calculate totals per platform (excluding Bandcamp)
+        platform_totals = {}
         for row in chart_data.values():
             for k, v in row.items():
                 if k == 'period':
                     continue
-                if k != 'Bandcamp':
-                    totals[k] = totals.get(k, 0) + (v or 0)
-        top5 = set(sorted(totals.items(), key=lambda x: x[1], reverse=True)[:5])
-        top5_keys = {k for k, _ in top5}
+                if k != 'Bandcamp' and v is not None:
+                    platform_totals[k] = platform_totals.get(k, 0) + v
         
-        # 2) build final list with Others
+        # 2) Get top 5 distribution platforms by total revenue
+        top5_platforms = sorted(platform_totals.items(), key=lambda x: x[1], reverse=True)[:5]
+        top5_keys = {k for k, _ in top5_platforms}
+        
+        # 3) Build final chart data with top 5 + Others
         chart_list = []
         for date_key in sorted(chart_data.keys()):
             row = chart_data[date_key]
             out = {'period': row['period']}
+            
+            # Always include Bandcamp if it exists
+            if 'Bandcamp' in row:
+                out['Bandcamp'] = row['Bandcamp']
+            
+            # Add top 5 distribution platforms
             others_total = 0
+            others_has_data = False
             for k, v in row.items():
-                if k == 'period':
+                if k == 'period' or k == 'Bandcamp':
                     continue
-                if k == 'Bandcamp' or k in top5_keys:
+                if k in top5_keys:
                     out[k] = v
                 else:
-                    others_total += v or 0
-            if others_total > 0:
-                out['Others'] = others_total
+                    if v is not None:
+                        others_total += v
+                        others_has_data = True
+            
+            # Add Others only if there's actual data (not just null values)
+            if others_has_data:
+                out['Others'] = others_total if others_total > 0 else None
+            
             chart_list.append(out)
         
         return Response(chart_list)
@@ -357,17 +449,30 @@ class RevenueAnalysisViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def platform_pie_chart(self, request):
         """Get platform revenue data for pie chart"""
+        # Get currency parameter
+        currency = request.GET.get('currency', 'BRL').upper()
+        if currency not in ['BRL', 'USD', 'EUR']:
+            currency = 'BRL'
+        
+        # Map currency to field name
+        currency_field_map = {
+            'BRL': 'revenue_brl',
+            'USD': 'revenue_usd', 
+            'EUR': 'revenue_eur'
+        }
+        currency_field = currency_field_map[currency]
+        
         queryset = self.get_dw_queryset()
         
         # Aggregate by effective display name:
         #  - 'Bandcamp' stays as Bandcamp
         #  - Distribution is shown per store name (Spotify, Apple Music, etc.)
         platform_data = queryset.values('platform', 'store').annotate(
-            revenue=Sum('revenue_base'),
+            revenue=Sum(currency_field),
             transactions=Count('id')
         ).order_by('-revenue')
         
-        total_revenue = queryset.aggregate(total=Sum('revenue_base'))['total'] or Decimal('0')
+        total_revenue = queryset.aggregate(total=Sum(currency_field))['total'] or Decimal('0')
         
         # Collapse into a simple name -> totals mapping
         aggregated = {}
@@ -375,11 +480,11 @@ class RevenueAnalysisViewSet(viewsets.ViewSet):
             'Bandcamp': '#408294',
             'Distribution': '#667eea', 
             'Spotify': '#1DB954',
-            'Apple Music': '#FA243C',
+            'Apple Music': '#C0C0C0',
             'iTunes': '#A2AAAD',
             'YouTube': '#FF0000',
-            'YouTube Music': '#FF0000',
-            'TikTok': '#69C9D0',
+            'YouTube Music': '#B71C1C',
+            'TikTok': '#FF6B00',
             'TIDAL': '#000000',
             'Beatport': '#A8E00F',
             'Amazon Music': '#FF9900',
@@ -395,15 +500,10 @@ class RevenueAnalysisViewSet(viewsets.ViewSet):
             aggregated[display_name]['revenue'] += row['revenue'] or Decimal('0')
             aggregated[display_name]['transactions'] += row['transactions'] or 0
         
-        # Top 5 + Others
+        # Return ALL platforms sorted by revenue - let frontend handle filtering
         sorted_items = sorted(aggregated.items(), key=lambda kv: kv[1]['revenue'], reverse=True)
-        # Top 5 + Others (always ensure exactly 5 platforms before Others when available)
-        top5 = sorted_items[:5]
-        others = sorted_items[5:]
-        others_total = sum((v['revenue'] for _, v in others), Decimal('0'))
-        others_tx = sum((v['transactions'] for _, v in others), 0)
         pie_data = []
-        for name, stats in top5:
+        for name, stats in sorted_items:
             revenue = float(stats['revenue'] or 0)
             percentage = (stats['revenue'] / total_revenue * 100) if total_revenue > 0 else 0
             pie_data.append({
@@ -412,15 +512,6 @@ class RevenueAnalysisViewSet(viewsets.ViewSet):
                 'percentage': round(percentage, 1),
                 'color': colors.get(name, '#95a5a6'),
                 'transactions': stats['transactions']
-            })
-        if others_total > 0:
-            pct = (others_total / total_revenue * 100) if total_revenue > 0 else 0
-            pie_data.append({
-                'name': 'Others',
-                'value': float(others_total),
-                'percentage': round(pct, 1),
-                'color': '#9CA3AF',
-                'transactions': others_tx
             })
         
         return Response(pie_data)
@@ -568,19 +659,24 @@ class RevenueAnalysisViewSet(viewsets.ViewSet):
         ).aggregate(revenue=Sum('net_amount_base'))['revenue'] or 0
         avg_monthly_revenue = avg_monthly_revenue / 12
         
-        # Bandcamp and Distribution totals from DW
-        bandcamp_total = dw_qs.filter(platform='Bandcamp').aggregate(total=Sum('revenue_base'))['total'] or 0
-        distribution_total = dw_qs.exclude(platform='Bandcamp').aggregate(total=Sum('revenue_base'))['total'] or 0
+        # Bandcamp and Distribution totals from DW - already in BRL
+        bandcamp_total_brl = dw_qs.filter(platform='Bandcamp').aggregate(total=Sum('revenue_brl'))['total'] or 0
+        distribution_total_brl = dw_qs.exclude(platform='Bandcamp').aggregate(total=Sum('revenue_brl'))['total'] or 0
+        overall_total_brl = bandcamp_total_brl + distribution_total_brl
+        
+        # Total revenue from DW (already in BRL)
+        total_revenue_brl = dw_qs.aggregate(total=Sum('revenue_brl'))['total'] or 0
+        avg_per_transaction_brl = total_revenue_brl / (total_stats['total_transactions'] or 1)
 
         return Response({
-            'total_revenue': str(total_stats['total_revenue'] or 0),
+            'total_revenue': str(total_revenue_brl),
             'total_transactions': total_stats['total_transactions'] or 0,
             'unique_artists': unique_artists,
             'unique_tracks': unique_tracks,
-            'avg_per_transaction': str(total_stats['avg_per_transaction'] or 0),
-            'bandcamp_total': str(bandcamp_total),
-            'distribution_total': str(distribution_total),
-            'overall_total': str((bandcamp_total or 0) + (distribution_total or 0)),
+            'avg_per_transaction': str(avg_per_transaction_brl),
+            'bandcamp_total': str(bandcamp_total_brl),
+            'distribution_total': str(distribution_total_brl),
+            'overall_total': str(overall_total_brl),
             'monthly_growth_rate': round(monthly_growth_rate, 1),
             'yearly_growth_rate': round(yearly_growth_rate, 1),
             'current_month_revenue': str(current_month_revenue),
@@ -606,6 +702,43 @@ class RevenueAnalysisViewSet(viewsets.ViewSet):
                 }
                 for p in platform_stats
             ]
+        })
+
+    @action(detail=False, methods=['get'])
+    def currency_data(self, request):
+        """Get revenue data in all currencies (BRL, USD, EUR)"""
+        currency = request.GET.get('currency', 'BRL').upper()
+        
+        if currency not in ['BRL', 'USD', 'EUR']:
+            currency = 'BRL'
+        
+        # Map currency to field name
+        currency_field_map = {
+            'BRL': 'revenue_brl',
+            'USD': 'revenue_usd', 
+            'EUR': 'revenue_eur'
+        }
+        
+        currency_field = currency_field_map[currency]
+        
+        queryset = self.get_dw_queryset()
+        
+        # Get totals in selected currency
+        bandcamp_total = queryset.filter(platform='Bandcamp').aggregate(
+            total=Sum(currency_field)
+        )['total'] or 0
+        
+        distribution_total = queryset.exclude(platform='Bandcamp').aggregate(
+            total=Sum(currency_field)
+        )['total'] or 0
+        
+        overall_total = bandcamp_total + distribution_total
+        
+        return Response({
+            'currency': currency,
+            'overall_total': str(overall_total),
+            'bandcamp_total': str(bandcamp_total),
+            'distribution_total': str(distribution_total)
         })
 
     @action(detail=False, methods=['get'])

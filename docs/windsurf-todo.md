@@ -1,19 +1,6 @@
 # Windsurf Backend TODO List
 
-This document outlines the necessary backend implementation steps for the Record Label Manager application, intended for handoff when moving to a full backend environment (e.g., Python/Django/PostgreSQL).
-
-## Current Implementation Status (Frontend)
-- [x] Implemented mock API for calendar events
-- [x] Standardized date format (YYYY-MM-DD) across all views
-- [x] Verified event consistency between grid and list views
-- [x] Implemented basic CRUD operations for calendar events
-
-**Mock Data Notes:**
-- Events are stored in-memory in `src/api/calendar.js`
-- Date format must be YYYY-MM-DD for proper filtering
-- Current mock events include:
-  - One release event for current date
-  - One deadline event 5 days from now
+App state check (ran `./start.sh` today): Django + DRF are serving real data on 8000, Vite is on 5174, and finance analytics endpoints respond. Most foundational models, serializers, viewsets, and ingest/payout commands already exist—the remaining work now centers on tightening auth, polishing integrations, and filling gaps like file storage.
 
 ## General Setup
 - [x] Set up Django project and app structure.
@@ -23,7 +10,7 @@ This document outlines the necessary backend implementation steps for the Record
 - [x] Configure CORS headers.
 - [x] Set up Django Admin interface.
 - [x] Configure static files handling.
-- [ ] Set up media file handling (for audio uploads, documents).
+- [ ] Finalize media file handling (currently only `MEDIA_ROOT`/`MEDIA_URL`; documents and demos still rely on external URLs).
 
 ## API Endpoints
 
@@ -32,44 +19,39 @@ This document outlines the necessary backend implementation steps for the Record
 - [x] **Serializer:** Created `ReleaseSerializer`.
 - [x] **Views:** Implemented `ViewSet` for CRUD operations.
 - [x] **Admin Interface:** Set up comprehensive admin interface with inline editing of tracks.
-- [ ] **Permissions:** Ensure only authenticated users can manage releases.
-- [ ] **Filtering/Sorting:** Add filtering by status, artist, date range; sorting options.
+- [ ] **Permissions:** Switch DRF default from `AllowAny` to authenticated + label-scoped policies.
+- [ ] **Filtering/Sorting:** Extend beyond the current label/status filters (add artist + date-range support exposed to the frontend).
 
 ### Artists (`/api/artists/`)
 - [x] **Model:** Define `Artist` model (name, contactEmail, bio, genre, etc.). Consider linking to User model if artists can log in.
 - [x] **Serializer:** Create `ArtistSerializer`.
 - [x] **Views:** Implement `ViewSet` for CRUD operations.
-- [x] **Permissions:** Define who can manage artist data.
+- [ ] **Permissions:** Align with release permissions so only label members manage artist data.
 
 ### Demos (`/api/demos/`)
-- [ ] **Model:** Define `Demo` model (trackTitle, artistName, submissionDate, status, audioFile, notes, contactEmail). Link to `Artist` model?
-- [ ] **Serializer:** Create `DemoSerializer`. Include handling for file uploads (`audioFile`).
-- [ ] **Views:** Implement `ViewSet` for CRUD operations.
-    - [ ] List: Retrieve all demos.
-    - [ ] Create: Handle demo submission (including audio file upload).
-    - [ ] Retrieve: Get details for a single demo.
-    - [ ] Update: Allow editing demo details (e.g., notes).
-    - [ ] Partial Update: Implement status changes (Pending Review -> Accepted/Rejected).
-    - [ ] Destroy: Delete a demo submission.
-- [ ] **Permissions:** Define permissions (e.g., anyone can submit, staff can review/manage).
-- [ ] **File Storage:** Configure storage for audio files (e.g., S3, local media storage).
-- [ ] **Review Functionality:** Implement the backend logic for the "Review" action (e.g., streaming audio, adding review notes). **(Added)**
+- [x] **Model:** Demo model with title, audio URL, submission meta, review notes.
+- [x] **Serializer:** Demo serializer with `submitted_by_name` helper.
+- [x] **Views:** ViewSet with full CRUD plus `update_status` action.
+    - [x] List/Create/Retrieve/Update/Destroy endpoints implemented.
+    - [x] Status updates supported through custom `update_status` action.
+- [ ] **Permissions:** Allow anonymous submissions but restrict review actions to label staff; currently everything is `AllowAny`.
+- [ ] **File Storage:** Replace `audio_url` placeholder with managed uploads + storage (local or S3) and secure streaming links.
+- [ ] **Review Flow:** Surface review notes + audio preview in the frontend using the real backend endpoints.
 
 ### Calendar (`/api/calendar/`)
-- [x] **Frontend Mock:** Basic CRUD operations implemented with mock data
 - [x] **Model:** Define `CalendarEvent` model (title, date, type (Release, Deadline, Meeting), description, relatedRelease/Artist?).
 - [x] **Serializer:** Create `CalendarEventSerializer`.
 - [x] **Views:** Implement `ViewSet` for CRUD operations.
-- [x] Align frontend API base URL (currently points to `http://localhost:8001/api`; backend serves 8000 in dev).
-- [ ] **Filtering:** Allow filtering by date range, event type.
+- [x] **Admin Interface:** Set up admin interface for calendar events.
+- [ ] **Filtering:** Current filterset supports `date` equality only—add range + type filters for dashboard use.
 
 ### Documents (`/api/documents/`)
 - [x] **Model:** Define `Document` model (title, file, uploadDate, category (Contract, Invoice, Artwork), relatedRelease/Artist?).
 - [x] **Serializer:** Create `DocumentSerializer` (handle file uploads).
 - [x] **Views:** Implement `ViewSet` for CRUD operations.
 - [x] **Admin Interface:** Set up admin interface for documents.
-- [ ] **Permissions:** Define access control for different document types/categories.
-- [ ] **File Storage:** Configure storage for documents.
+- [ ] **Permissions:** Enforce per-label access and restrict uploads to authenticated users.
+- [ ] **File Storage:** Swap `file_url` placeholders for managed uploads + download endpoints.
 
 ### Settings (`/api/settings/` or `/api/users/me/`)
 - [x] **Model:** Created `UserProfile` model for application-specific settings (role, preferences).
@@ -78,8 +60,8 @@ This document outlines the necessary backend implementation steps for the Record
 - [x] **Admin Interface:** Extended the User admin with UserProfile information.
 
 ## Testing
-- [ ] Implement unit tests for models, serializers, and views.
-- [ ] Implement integration tests for API endpoints.
+- [ ] Implement unit tests for models, serializers, and views (none in `backend/api/tests.py`).
+- [ ] Implement integration tests for API endpoints + finance ingestion commands.
 
 ## Deployment
 - [x] Set up Docker containers for development/production
@@ -87,7 +69,7 @@ This document outlines the necessary backend implementation steps for the Record
 - [x] Set up Nginx as a web server in Docker
 - [x] Configure static files serving with Whitenoise
 - [x] Set up proper communication between containers
-- [ ] Configure production environment variables
+- [ ] Configure production environment variables (currently hard-coded defaults in `settings.py`).
 - [ ] Set up CI/CD pipeline
 - [ ] Configure cloud hosting provider (e.g., AWS, DigitalOcean)
 
@@ -101,3 +83,9 @@ This document outlines the necessary backend implementation steps for the Record
 - [ ] Add related model management (many-to-many, inline forms)
 - [ ] Implement authentication and permission handling
 - [ ] Create a dashboard with key metrics
+
+## Integration / Miscellaneous
+- [x] Align frontend API base URL (Vite override now available via `VITE_API_BASE_URL`, defaulting to `http://localhost:8000/api`).
+- [ ] Replace frontend mock auth with JWT login via `/api/token/`.
+- [ ] Generate and apply new migrations for recent finance model clean-up (see `backend/finances/migrations/0004...`).
+- [ ] Document updated startup expectations now that the finance pipeline + analytics endpoints are in place.

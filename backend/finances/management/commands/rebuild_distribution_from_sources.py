@@ -1,4 +1,5 @@
 import csv
+import hashlib
 from pathlib import Path
 from decimal import Decimal
 from datetime import datetime, date
@@ -84,10 +85,18 @@ class Command(BaseCommand):
             # Rewind and process
             with open(csv_path, 'r', encoding='utf-8', errors='ignore') as fh:
                 if is_zebralution:
-                    reader = csv.DictReader(fh, delimiter=';')
+                    # Normalize header by stripping whitespace
+                    header = [h.strip() for h in first.strip().split(';')]
+                    fh.seek(0)
+                    next(fh)  # skip header row
+                    reader = csv.DictReader(fh, fieldnames=header, delimiter=';')
                     datasource = zb_ds
                 else:
-                    reader = csv.DictReader(fh)
+                    # Normalize header to avoid trailing spaces in 'Store Name'
+                    header = [h.strip() for h in first.strip().split(',')]
+                    fh.seek(0)
+                    next(fh)  # skip header row
+                    reader = csv.DictReader(fh, fieldnames=header)
                     datasource = lw_ds
 
                 # Prepare SourceFile for this physical file
@@ -119,7 +128,10 @@ class Command(BaseCommand):
                                     store_name = provider
                                 else:
                                     store_name = '(unknown)'
-                            occurred_at = self._parse_month(row.get('Period', ''))
+                            # Use Period Sold for actual sale date, fallback to Period for reporting period
+                            period_sold = row.get('Period Sold', '').strip()
+                            period_reporting = row.get('Period', '').strip()
+                            occurred_at = self._parse_month(period_sold or period_reporting)
                             qty = int((row.get('Sales') or '0').replace(',', '.')) if row.get('Sales') else 0
                             net_eur = parse_decimal(row.get('Rev.less Publ.EUR', '0'))
                             gross_eur = parse_decimal(row.get('Revenue-EUR', '0'))
@@ -153,6 +165,9 @@ class Command(BaseCommand):
                             continue
 
                         if not dry_run:
+                            # Ensure row_hash fits in 64 chars by hashing the identifying tuple
+                            hash_input = f"rebuild|{datasource.name}|{csv_path.name}|{total_rows}".encode('utf-8', 'ignore')
+                            row_hash = hashlib.sha256(hash_input).hexdigest()
                             RevenueEvent.objects.create(
                                 source_file=source_file,
                                 label=label,
@@ -170,7 +185,7 @@ class Command(BaseCommand):
                                 track_title=title,
                                 catalog_number=catalog,
                                 isrc=isrc,
-                                row_hash=f"rebuild:{datasource.name}:{csv_path.name}:{total_rows}"
+                                row_hash=row_hash
                             )
                         imported_rows += 1
                     except Exception:

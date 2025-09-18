@@ -9,7 +9,7 @@ source "$ROOT_DIR/backend/venv/bin/activate"
 echo "[start] Applying migrations"
 python "$ROOT_DIR/backend/manage.py" migrate --noinput
 
-if [[ "${REBUILD_DISTRIBUTION:-1}" == "1" ]]; then
+if [[ "${REBUILD_DISTRIBUTION:-0}" == "1" ]]; then
   echo "[start] Rebuilding distribution events from spreadsheets (Labelworx+Zebralution)"
   python "$ROOT_DIR/backend/manage.py" rebuild_distribution_from_sources --label "Tropical Twista Records" --root "$ROOT_DIR/finance/sources/tropical-twista/distribution"
   echo "[start] Building staging and DW"

@@ -91,6 +91,9 @@ class DwFactRevenue(models.Model):
     quantity = models.IntegerField(default=0)
     revenue_base = models.DecimalField(max_digits=18, decimal_places=6, default=0)
     base_ccy = models.CharField(max_length=3)
+    revenue_brl = models.DecimalField(max_digits=18, decimal_places=6, default=0)
+    revenue_usd = models.DecimalField(max_digits=18, decimal_places=6, default=0)
+    revenue_eur = models.DecimalField(max_digits=18, decimal_places=6, default=0)
 
     class Meta:
         managed = False

@@ -15,7 +15,7 @@ import Demos from './components/Demos';
 import DemoDetail from './components/DemoDetail';
 import Documents from './components/Documents';
 import Settings from './components/Settings';
-import AnalyticsImproved from './components/AnalyticsImproved';
+import Analytics from './components/Analytics';
 
 class AppErrorBoundary extends React.Component {
   constructor(props) {
@@ -72,7 +72,7 @@ function App() {
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/artists" element={<Artists />} />
             <Route path="/artists/:id" element={<ArtistDetail />} />
-            <Route path="/analytics" element={<AnalyticsImproved />} />
+            <Route path="/analytics" element={<Analytics />} />
             <Route path="/demos" element={<Demos />} />
             <Route path="/demos/:id" element={<DemoDetail />} />
             <Route path="/documents" element={<Documents />} />

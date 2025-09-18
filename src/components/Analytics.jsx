@@ -1,430 +1,978 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from 'recharts';
-import styles from './Analytics.module.css';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import styles from './AnalyticsOverview.module.css';
 
-const Analytics = () => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [selectedYear, setSelectedYear] = useState('2024');
-  const [data, setData] = useState({
-    overview: null,
-    artistBreakdown: [],
-    trackBreakdown: [],
-    platformBreakdown: [],
-    quarterlyData: []
-  });
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, info: null };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error, info) {
+    // eslint-disable-next-line no-console
+    console.error('Analytics error:', error, info);
+    this.setState({ info });
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 24 }}>
+          <h3>Analytics failed to render</h3>
+          <p>Try changing filters or reloading. The error has been logged to the console.</p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// The main analytics UI and data logic. Wrapped by ErrorBoundary below so
+// render-time issues surface as a friendly message instead of a blank page.
+const AnalyticsContent = () => {
+  const [data, setData] = useState([]);
+  const [monthlyData, setMonthlyData] = useState([]);
+  const [quarterlyData, setQuarterlyData] = useState([]);
+  const [platformData, setPlatformData] = useState([]);
+  const [kpiData, setKpiData] = useState(null);
+  const [availableYears, setAvailableYears] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 100, totalCount: 0 });
+  const [activeTab, setActiveTab] = useState('overview');
+  const [currentCurrency, setCurrentCurrency] = useState('BRL');
+  const [currencyLoading, setCurrencyLoading] = useState(false);
+  
+  // Pre-loaded data for all currencies
+  const [allCurrencyData, setAllCurrencyData] = useState({
+    BRL: { kpi: null, monthly: [], quarterly: [], platform: [] },
+    USD: { kpi: null, monthly: [], quarterly: [], platform: [] },
+    EUR: { kpi: null, monthly: [], quarterly: [], platform: [] }
+  });
+  // Separate applied filters from draft filters
+  const [appliedFilters, setAppliedFilters] = useState({
+    year: 'all',
+    quarter: 'all',
+    artist: '',
+    track: '',
+    catalog: ''
+  });
+  
+  const [draftFilters, setDraftFilters] = useState({
+    year: 'all',
+    quarter: 'all',
+    artist: '',
+    track: '',
+    catalog: ''
+  });
 
   useEffect(() => {
-    loadAnalyticsData();
-  }, [selectedYear]);
+    loadFilterOptions();
+  }, []);
 
-  const loadAnalyticsData = async () => {
-    setLoading(true);
-    
-    // Mock data based on your real financial data
-    const mockData = {
-      overview: {
-        totalRevenue: 7096.66,
-        distributionRevenue: 5297.22,
-        bandcampRevenue: 1799.44,
-        totalTracks: 156,
-        totalArtists: 23,
-        totalTransactions: 11000
-      },
+  // Only trigger data loading when appliedFilters, pagination, or tab changes
+  useEffect(() => {
+    loadData(); // Still load detailed table data with current currency
+    loadAllCurrencyData(); // Load all currency data for charts/KPIs
+  }, [appliedFilters, pagination.page, activeTab]);
+
+
+  // Load data for all currencies at once
+  const loadAllCurrencyData = async () => {
+    try {
+      const currencies = ['BRL', 'USD', 'EUR'];
+      const chartParams = new URLSearchParams();
+      if (appliedFilters.year !== 'all') chartParams.append('year', appliedFilters.year);
+      if (appliedFilters.quarter !== 'all') chartParams.append('quarter', appliedFilters.quarter);
+      if (appliedFilters.artist) chartParams.append('artist', appliedFilters.artist);
+      if (appliedFilters.track) chartParams.append('track', appliedFilters.track);
+      if (appliedFilters.catalog) chartParams.append('catalog', appliedFilters.catalog);
+
+      const newAllCurrencyData = { ...allCurrencyData };
+
+      // Load data for each currency in parallel
+      await Promise.all(currencies.map(async (currency) => {
+        const currencyParams = new URLSearchParams(chartParams);
+        currencyParams.append('currency', currency);
+
+        try {
+          const [currencyResponse, kpiResponse, monthlyResponse, quarterlyResponse, platformResponse] = await Promise.all([
+            fetch(`http://127.0.0.1:8000/api/finances/revenue/currency_data/?${currencyParams.toString()}`),
+            fetch(`http://127.0.0.1:8000/api/finances/revenue/kpi_summary/?${currencyParams.toString()}`),
+            fetch(`http://127.0.0.1:8000/api/finances/revenue/monthly_overview/?${currencyParams.toString()}`),
+            fetch(`http://127.0.0.1:8000/api/finances/revenue/monthly_revenue_chart/?${currencyParams.toString()}`),
+            fetch(`http://127.0.0.1:8000/api/finances/revenue/platform_pie_chart/?${currencyParams.toString()}`)
+          ]);
+
+          if (currencyResponse.ok && kpiResponse.ok) {
+            const currencyData = await currencyResponse.json();
+            const kpiData = await kpiResponse.json();
+            
+            // Merge currency-specific revenue amounts with full KPI data
+            const mergedKpiData = {
+              ...kpiData,
+              overall_total: currencyData.overall_total,
+              bandcamp_total: currencyData.bandcamp_total,
+              distribution_total: currencyData.distribution_total,
+              total_revenue: currencyData.overall_total
+            };
+            
+            console.log(`Merged KPI data for ${currency}:`, {
+              unique_artists: mergedKpiData.unique_artists,
+              unique_tracks: mergedKpiData.unique_tracks,
+              total_transactions: mergedKpiData.total_transactions,
+              overall_total: mergedKpiData.overall_total
+            });
+            
+            newAllCurrencyData[currency].kpi = mergedKpiData;
+          }
+          if (monthlyResponse.ok) {
+            newAllCurrencyData[currency].monthly = await monthlyResponse.json();
+          }
+          if (quarterlyResponse.ok) {
+            newAllCurrencyData[currency].quarterly = await quarterlyResponse.json();
+          }
+          if (platformResponse.ok) {
+            newAllCurrencyData[currency].platform = await platformResponse.json();
+          }
+        } catch (error) {
+          console.warn(`Failed to load ${currency} data:`, error);
+        }
+      }));
+
+      setAllCurrencyData(newAllCurrencyData);
       
-      quarterlyData: [
-        { quarter: 'Q1', distribution: 1091.55, bandcamp: 450.25, total: 1541.80 },
-        { quarter: 'Q2', distribution: 1445.29, bandcamp: 523.18, total: 1968.47 },
-        { quarter: 'Q3', distribution: 1481.01, bandcamp: 412.33, total: 1893.34 },
-        { quarter: 'Q4', distribution: 1279.36, bandcamp: 413.68, total: 1693.04 }
-      ],
+      // Set initial data for current currency
+      updateDisplayDataForCurrency(currentCurrency, newAllCurrencyData);
       
-      platformBreakdown: [
-        { name: 'Spotify', revenue: 2100.50, percentage: 29.6, color: '#1DB954' },
-        { name: 'Apple Music', revenue: 1450.30, percentage: 20.4, color: '#FA243C' },
-        { name: 'YouTube Music', revenue: 980.25, percentage: 13.8, color: '#FF0000' },
-        { name: 'Amazon Music', revenue: 766.17, percentage: 10.8, color: '#FF9900' },
-        { name: 'Bandcamp', revenue: 1799.44, percentage: 25.4, color: '#408294' }
-      ],
-      
-      artistBreakdown: [
-        { artist: 'Ibu Selva', revenue: 1426.45, tracks: 8, percentage: 20.1 },
-        { artist: 'BirdZzie', revenue: 892.33, tracks: 5, percentage: 12.6 },
-        { artist: 'Yaguareté', revenue: 645.28, tracks: 3, percentage: 9.1 },
-        { artist: 'Kurup', revenue: 521.67, tracks: 4, percentage: 7.4 },
-        { artist: 'Cigarra', revenue: 398.45, tracks: 6, percentage: 5.6 },
-        { artist: 'Pandemonius', revenue: 334.78, tracks: 3, percentage: 4.7 },
-        { artist: 'Bmind', revenue: 287.92, tracks: 2, percentage: 4.1 },
-        { artist: 'Salvador Araguaya', revenue: 245.88, tracks: 2, percentage: 3.5 }
-      ],
-      
-      trackBreakdown: [
-        { artist: 'Ibu Selva', title: 'Milonga', isrc: 'US83Z2005182', catalog: 'TTR019', revenue: 1126.01, streams: 185000 },
-        { artist: 'BirdZzie', title: 'En Tu Puerta Estamos Cuatro', isrc: 'QZNRS2038186', catalog: 'TTR???', revenue: 620.38, streams: 44000 },
-        { artist: 'Yaguareté', title: 'Bachianas Brasileiras N5', isrc: 'QZJRB1957380', catalog: 'TTR???', revenue: 510.18, streams: 162000 },
-        { artist: 'Kurup', title: 'Três Mulheres de Xangô', isrc: 'US83Z2014031', catalog: 'TTR003', revenue: 501.64, streams: 107000 },
-        { artist: 'Unknown', title: 'Unknown Track', isrc: 'DEBE72300408', catalog: 'TTR???', revenue: 402.64, streams: 150000 }
-      ]
-    };
-    
-    setData(mockData);
-    setLoading(false);
+    } catch (error) {
+      console.error('Failed to load currency data:', error);
+    }
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 2
-    }).format(amount);
-  };
-
-  const formatNumber = (num) => {
-    return new Intl.NumberFormat('en-US').format(num);
-  };
-
-  const exportData = (dataType) => {
-    let csvContent = '';
-    let filename = `${dataType}-${selectedYear}.csv`;
+  // Update display data when currency changes (no API calls)
+  const updateDisplayDataForCurrency = (currency, currencyData = allCurrencyData) => {
+    console.log(`Switching to ${currency}:`, currencyData[currency]);
+    const data = currencyData[currency];
     
-    switch(dataType) {
-      case 'artists':
-        csvContent = [
-          ['Artist', 'Revenue_EUR', 'Tracks_Count', 'Percentage'],
-          ...data.artistBreakdown.map(artist => [
-            artist.artist, artist.revenue, artist.tracks, artist.percentage + '%'
-          ])
-        ].map(row => row.join(',')).join('\n');
-        break;
-        
-      case 'tracks':
-        csvContent = [
-          ['Artist', 'Track', 'ISRC', 'Catalog', 'Revenue_EUR', 'Streams'],
-          ...data.trackBreakdown.map(track => [
-            track.artist, track.title, track.isrc, track.catalog, track.revenue, track.streams
-          ])
-        ].map(row => row.join(',')).join('\n');
-        break;
-        
-      case 'quarterly':
-        csvContent = [
-          ['Quarter', 'Distribution_EUR', 'Bandcamp_EUR', 'Total_EUR'],
-          ...data.quarterlyData.map(q => [
-            q.quarter, q.distribution, q.bandcamp, q.total
-          ])
-        ].map(row => row.join(',')).join('\n');
-        break;
+    if (data && data.kpi) {
+      console.log(`Setting KPI data for ${currency}:`, {
+        unique_artists: data.kpi.unique_artists,
+        unique_tracks: data.kpi.unique_tracks,
+        total_transactions: data.kpi.total_transactions,
+        overall_total: data.kpi.overall_total
+      });
+      setKpiData(data.kpi);
+    } else {
+      console.log(`No KPI data available for ${currency}`);
     }
     
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    if (data && data.monthly) setMonthlyData(data.monthly);
+    if (data && data.quarterly) setQuarterlyData(data.quarterly);
+    if (data && data.platform) setPlatformData(data.platform);
   };
 
-  if (loading) {
-    return <div className={styles.container}>Loading analytics...</div>;
+  // Handle currency switching with visual feedback
+  const handleCurrencyChange = (newCurrency) => {
+    setCurrencyLoading(true);
+    setCurrentCurrency(newCurrency);
+    
+    // Small delay to show loading state, then update data
+    setTimeout(() => {
+      updateDisplayDataForCurrency(newCurrency);
+      setCurrencyLoading(false);
+    }, 100);
+  };
+
+  // Update data when currency changes
+  useEffect(() => {
+    if (allCurrencyData[currentCurrency] && allCurrencyData[currentCurrency].kpi) {
+      updateDisplayDataForCurrency(currentCurrency);
+    }
+  }, [currentCurrency, allCurrencyData]);
+
+  const loadFilterOptions = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/finances/revenue/filter_options/');
+      if (response.ok) {
+        const options = await response.json();
+        setAvailableYears(options.years || []);
+      }
+    } catch (error) {
+      console.log('Using fallback years');
+      setAvailableYears([
+        { value: '2024', label: '2024' },
+        { value: '2023', label: '2023' },
+        { value: '2022', label: '2022' },
+        { value: '2021', label: '2021' },
+        { value: '2020', label: '2020' },
+        { value: '2019', label: '2019' },
+        { value: '2018', label: '2018' },
+        { value: '2017', label: '2017' }
+      ]);
+    }
+  };
+
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Build filter parameters using appliedFilters and current currency
+      const params = new URLSearchParams({
+        page: pagination.page.toString(),
+        page_size: pagination.pageSize.toString(),
+        currency: currentCurrency
+      });
+      
+      if (appliedFilters.year !== 'all') params.append('year', appliedFilters.year);
+      if (appliedFilters.quarter !== 'all') params.append('quarter', appliedFilters.quarter);
+      if (appliedFilters.artist) params.append('artist', appliedFilters.artist);
+      if (appliedFilters.track) params.append('track', appliedFilters.track);
+      if (appliedFilters.catalog) params.append('catalog', appliedFilters.catalog);
+      
+      // Load chart data with same filters (without pagination)
+      const chartParams = new URLSearchParams();
+      chartParams.append('currency', currentCurrency);
+      if (appliedFilters.year !== 'all') chartParams.append('year', appliedFilters.year);
+      if (appliedFilters.quarter !== 'all') chartParams.append('quarter', appliedFilters.quarter);
+      if (appliedFilters.artist) chartParams.append('artist', appliedFilters.artist);
+      if (appliedFilters.track) chartParams.append('track', appliedFilters.track);
+      if (appliedFilters.catalog) chartParams.append('catalog', appliedFilters.catalog);
+      
+      // Load monthly aggregated data for overview tab
+      const monthlyResponse = await fetch(`http://127.0.0.1:8000/api/finances/revenue/monthly_overview/?${chartParams.toString()}`);
+      if (monthlyResponse.ok) {
+        const monthlyResult = await monthlyResponse.json();
+        setMonthlyData(monthlyResult || []);
+      }
+
+      // Load detailed table data only when on detailed tab
+      if (activeTab === 'detailed') {
+        const tableResponse = await fetch(`http://127.0.0.1:8000/api/finances/revenue/detailed_overview/?${params.toString()}`);
+        
+        if (tableResponse.ok) {
+          const result = await tableResponse.json();
+          setData(result.data || []);
+          setPagination(prev => ({ ...prev, totalCount: result.pagination?.total_count || 0 }));
+        } else {
+          setError('Failed to load detailed data from API');
+          setData([]);
+        }
+      }
+      
+      try {
+        const [quarterlyResponse, platformResponse] = await Promise.all([
+          fetch(`http://127.0.0.1:8000/api/finances/revenue/monthly_revenue_chart/?${chartParams.toString()}`),
+          fetch(`http://127.0.0.1:8000/api/finances/revenue/platform_pie_chart/?${chartParams.toString()}`)
+        ]);
+        
+        if (quarterlyResponse.ok) {
+          const quarterlyResult = await quarterlyResponse.json();
+          setQuarterlyData(quarterlyResult || []);
+        }
+        
+        if (platformResponse.ok) {
+          const platformResult = await platformResponse.json();
+          setPlatformData(platformResult || []);
+        }
+      } catch (chartError) {
+        console.log('Chart data loading failed, using defaults');
+      }
+      
+    } catch (error) {
+      setError(`Error: ${error.message}`);
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Apply filters function
+  const applyFilters = () => {
+    setAppliedFilters({ ...draftFilters });
+    setPagination(prev => ({ ...prev, page: 1 })); // Reset to page 1 when applying filters
+  };
+
+  // Clear filters function
+  const clearFilters = () => {
+    const clearedFilters = { year: 'all', quarter: 'all', artist: '', track: '', catalog: '' };
+    setDraftFilters(clearedFilters);
+    setAppliedFilters(clearedFilters);
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  // Backend provides amounts in all currencies, format based on current selection
+  const formatCurrency = (amount) => {
+    const n = Number(amount);
+    if (!isFinite(n)) return '';
+    
+    switch (currentCurrency) {
+      case 'USD':
+        return `$${n.toLocaleString('en-US', { 
+          minimumFractionDigits: 0, 
+          maximumFractionDigits: 0 
+        })}`;
+      case 'EUR':
+        return `€${n.toLocaleString('de-DE', { 
+          minimumFractionDigits: 0, 
+          maximumFractionDigits: 0 
+        })}`;
+      case 'BRL':
+      default:
+        return `R$${n.toLocaleString('pt-BR', { 
+          minimumFractionDigits: 0, 
+          maximumFractionDigits: 0 
+        })}`;
+    }
+  };
+
+  // Keep legacy functions for backward compatibility
+  const formatBRL = (amount) => formatCurrency(amount);
+  const formatUSD = (amount) => formatCurrency(amount);
+
+  const formatNumber = (num) => {
+    const n = Number(num || 0);
+    if (!isFinite(n)) return '0';
+    // Use Brazilian locale formatting for numbers
+    return Math.round(n).toLocaleString('pt-BR');
+  };
+
+  // Derive available platform keys from chart data
+  // IMPORTANT: Hooks must not be conditional. Keep useMemo above any early returns.
+  const allPlatformKeys = React.useMemo(() => {
+    const set = new Set();
+    (quarterlyData || []).forEach(row => {
+      Object.keys(row).forEach(k => {
+        if (
+          k !== 'period' &&
+          typeof k === 'string' &&
+          row[k] !== null && row[k] !== undefined &&
+          // filter out accidental numeric keys
+          isNaN(Number(k))
+        ) {
+          set.add(k);
+        }
+      });
+    });
+    return Array.from(set);
+  }, [quarterlyData]);
+
+  const distributionKeys = allPlatformKeys.filter(k => k.toLowerCase() !== 'bandcamp');
+  const hasBandcamp = allPlatformKeys.includes('Bandcamp');
+
+  // Use backend data directly - backend now handles top 5 + Others aggregation
+  const distributionChartData = React.useMemo(() => {
+    if (!quarterlyData || quarterlyData.length === 0) return [];
+    
+    // Find first index where distribution has any value to avoid long empty leading span
+    const firstIdx = quarterlyData.findIndex(row => 
+      distributionKeys.some(k => Number(row[k]) > 0)
+    );
+    if (firstIdx === -1) return [];
+    
+    return quarterlyData.slice(firstIdx);
+  }, [quarterlyData, distributionKeys]);
+
+  // Get distribution keys for rendering (exclude Bandcamp and period)
+  const distributionRenderKeys = React.useMemo(() => {
+    if (!distributionChartData.length) return [];
+    
+    // Get all keys except 'period' and 'Bandcamp'
+    const keys = new Set();
+    distributionChartData.forEach(row => {
+      Object.keys(row).forEach(key => {
+        if (key !== 'period' && key !== 'Bandcamp') {
+          keys.add(key);
+        }
+      });
+    });
+    
+    return Array.from(keys);
+  }, [distributionChartData]);
+
+  if (error) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.filtersSection}>
+          <h3>Connection Error</h3>
+          <p>{error}</p>
+          <p>Backend: http://127.0.0.1:8000/</p>
+          <p>Frontend: http://localhost:5174/</p>
+          <a href="http://127.0.0.1:8000/admin/" target="_blank" rel="noopener noreferrer">Django Admin</a>
+        </div>
+      </div>
+    );
   }
+
+  if (loading) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.filtersSection}>
+          <h3>Loading Analytics</h3>
+          <p>Connecting to database with 17,931 records</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Consistent platform color mapping - differentiated colors for all platforms
+  const platformColors = {
+    'Spotify': '#1DB954',           // Spotify green
+    'Apple Music': '#C0C0C0',       // Apple Music silver
+    'YouTube': '#FF0000',           // YouTube red  
+    'YouTube Music': '#B71C1C',     // Darker red for YouTube Music 
+    'TikTok': '#FF6B00',           // TikTok orange
+    'Beatport': '#01FF95',         // Beatport bright green
+    'Amazon Music': '#FF9F00',      // Amazon orange
+    'Bandcamp': '#408294',         // Bandcamp teal
+    'Deezer': '#A238FF',           // Deezer purple
+    'Tidal': '#000000',            // Tidal black
+    'SoundCloud': '#FF5500',       // SoundCloud orange
+    'Traxsource': '#FF6B35',       // Traxsource orange-red
+    'Juno Download': '#4ECDC4',    // Juno teal
+    'Qobuz': '#5A67D8',           // Qobuz blue
+    'Shazam': '#0066FF',          // Shazam blue
+    'Instagram': '#E4405F',        // Instagram pink
+    'Facebook': '#1877F2',         // Facebook blue
+    'Others': '#9CA3AF'            // Gray for others
+  };
+
+  // Simple color palette for multiple distribution platforms (fallback)
+  const palette = ['#667eea', '#1DB954', '#FA243C', '#FF9900', '#CC0000', '#4ECDC4', '#A78BFA', '#F59E0B'];
+
+  const safeCurrency = (v) => {
+    const n = Number(v);
+    if (!isFinite(n)) return '';
+    
+    switch (currentCurrency) {
+      case 'USD':
+        return `$${Math.round(n).toLocaleString('en-US')}`;
+      case 'EUR':
+        return `€${Math.round(n).toLocaleString('de-DE')}`;
+      case 'BRL':
+      default:
+        return `R$${Math.round(n).toLocaleString('pt-BR')}`;
+    }
+  };
+
+  // Helper: take top N by value and group remainder into "Others"
+  const topNWithOthers = (items, n, exclude = [], recalculatePercentages = false, minThreshold = 0) => {
+    const filtered = (items || []).filter(i => i && !exclude.includes(i.name) && (Number(i.value) || 0) > minThreshold);
+    const sorted = [...filtered].sort((a, b) => (b.value || 0) - (a.value || 0));
+    const top = sorted.slice(0, n);
+    const rest = sorted.slice(n);
+    const othersTotal = rest.reduce((sum, it) => sum + (Number(it.value) || 0), 0);
+
+    let result = [...top];
+    if (othersTotal > 0) {
+      result.push({ name: 'Others', value: othersTotal, percentage: 0, color: '#9CA3AF' });
+    }
+
+    // Recalculate percentages if requested (for filtered data)
+    if (recalculatePercentages) {
+      const total = result.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
+      result = result.map(item => ({
+        ...item,
+        percentage: total > 0 ? Math.round((Number(item.value) / total * 100) * 10) / 10 : 0
+      }));
+    }
+
+    // Apply consistent platform colors
+    return result.map(item => ({
+      ...item,
+      color: platformColors[item.name] || item.color || '#9CA3AF'
+    }));
+  };
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <h1>📊 Revenue Analytics</h1>
-        <div className={styles.controls}>
-          <select 
-            value={selectedYear} 
-            onChange={(e) => setSelectedYear(e.target.value)}
-            className={styles.select}
-          >
-            <option value="2024">2024</option>
-            <option value="2023">2023</option>
-            <option value="2022">2022</option>
-            <option value="all">All Years</option>
-          </select>
+      {/* Filters */}
+      <div className={styles.filtersSection}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h3>Revenue Analytics ({pagination.totalCount.toLocaleString('pt-BR')} records)</h3>
+          
+          {/* Currency Switcher */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '14px', color: '#666' }}>
+              Currency: {currencyLoading && <span style={{ color: '#007bff' }}>⟳</span>}
+            </span>
+            <div style={{ display: 'flex', border: '1px solid #ddd', borderRadius: '6px', overflow: 'hidden' }}>
+              {['BRL', 'USD', 'EUR'].map(currency => (
+                <button
+                  key={currency}
+                  onClick={() => handleCurrencyChange(currency)}
+                  disabled={currencyLoading}
+                  style={{
+                    padding: '6px 12px',
+                    border: 'none',
+                    backgroundColor: currentCurrency === currency ? '#007bff' : '#fff',
+                    color: currentCurrency === currency ? '#fff' : '#333',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: currentCurrency === currency ? 'bold' : 'normal',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (currentCurrency !== currency) {
+                      e.target.style.backgroundColor = '#f8f9fa';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (currentCurrency !== currency) {
+                      e.target.style.backgroundColor = '#fff';
+                    }
+                  }}
+                >
+                  {currency === 'BRL' ? 'R$' : currency === 'USD' ? '$' : '€'} {currency}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-      </header>
+        <div className={styles.filtersGrid}>
+          <select 
+            value={draftFilters.year}
+            onChange={(e) => setDraftFilters({...draftFilters, year: e.target.value})}
+            className={styles.filter}
+          >
+            <option value="all">All Years</option>
+            {availableYears.map(yearObj => (
+              <option key={yearObj.value} value={yearObj.value}>
+                {yearObj.label}
+              </option>
+            ))}
+          </select>
 
-      {/* Navigation Tabs */}
-      <div className={styles.tabNav}>
+          <select 
+            value={draftFilters.quarter}
+            onChange={(e) => setDraftFilters({...draftFilters, quarter: e.target.value})}
+            className={styles.filter}
+          >
+            <option value="all">All Quarters</option>
+            <option value="1">Q1</option>
+            <option value="2">Q2</option>
+            <option value="3">Q3</option>
+            <option value="4">Q4</option>
+          </select>
+
+          <input
+            type="text"
+            placeholder="Search Artist"
+            value={draftFilters.artist}
+            onChange={(e) => setDraftFilters({...draftFilters, artist: e.target.value})}
+            className={styles.filter}
+          />
+
+          <input
+            type="text"
+            placeholder="Search Track"
+            value={draftFilters.track}
+            onChange={(e) => setDraftFilters({...draftFilters, track: e.target.value})}
+            className={styles.filter}
+          />
+
+          <input
+            type="text"
+            placeholder="Catalog (TTR019, etc.)"
+            value={draftFilters.catalog}
+            onChange={(e) => setDraftFilters({...draftFilters, catalog: e.target.value})}
+            className={styles.filter}
+          />
+
+          <button 
+            onClick={applyFilters}
+            className={styles.applyFiltersBtn}
+          >
+            Apply Filters
+          </button>
+
+          <button 
+            onClick={clearFilters}
+            className={styles.clearFiltersBtn}
+          >
+            Clear All
+          </button>
+        </div>
+      </div>
+
+      {/* KPI Summary */}
+      {kpiData && (
+        <div className={styles.kpiSummary}>
+          <div className={styles.kpiGrid}>
+            <div className={styles.kpiItem}>
+              <div className={styles.kpiLabel}>Overall Revenue</div>
+              <div className={styles.kpiValue}>{formatCurrency(kpiData.overall_total || kpiData.total_revenue)}</div>
+              <div className={styles.kpiChange}>all time earnings ({currentCurrency})</div>
+            </div>
+
+            <div className={styles.kpiItem}>
+              <div className={styles.kpiLabel}>Artists</div>
+              <div className={styles.kpiValue}>{formatNumber(kpiData.unique_artists)}</div>
+              <div className={styles.kpiChange}>earning revenue</div>
+            </div>
+
+            <div className={styles.kpiItem}>
+              <div className={styles.kpiLabel}>Tracks</div>
+              <div className={styles.kpiValue}>{formatNumber(kpiData.unique_tracks)}</div>
+              <div className={styles.kpiChange}>with sales</div>
+            </div>
+
+            <div className={styles.kpiItem}>
+              <div className={styles.kpiLabel}>Transactions</div>
+              <div className={styles.kpiValue}>{formatNumber(kpiData.total_transactions)}</div>
+              <div className={styles.kpiChange}>{formatCurrency(kpiData.avg_per_transaction)} average</div>
+            </div>
+
+            <div className={styles.kpiItem}>
+              <div className={styles.kpiLabel}>Bandcamp Revenue</div>
+              <div className={styles.kpiValue}>{formatCurrency(kpiData.bandcamp_total || 0)}</div>
+              <div className={styles.kpiChange}>all time earnings ({currentCurrency})</div>
+            </div>
+
+            <div className={styles.kpiItem}>
+              <div className={styles.kpiLabel}>Distribution Revenue</div>
+              <div className={styles.kpiValue}>{formatCurrency(kpiData.distribution_total || 0)}</div>
+              <div className={styles.kpiChange}>all time earnings ({currentCurrency})</div>
+            </div>
+
+            <div className={styles.kpiItem}>
+              <div className={styles.kpiLabel}>Top Artist</div>
+              <div className={styles.kpiValue}>{kpiData?.top_artist?.name || 'N/A'}</div>
+              <div className={styles.kpiChange}>{formatCurrency(kpiData?.top_artist?.revenue || 0)}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Charts */}
+      <div className={styles.chartsSection}>
+        {/* Bandcamp only */}
+        <div className={styles.chartCard} style={{ minHeight: 320 }}>
+          <h3>Bandcamp - Daily Revenue</h3>
+          {quarterlyData && quarterlyData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={quarterlyData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="period" tick={{ fontSize: 12 }} interval="preserveStartEnd" />
+              <YAxis domain={[0, 'dataMax']} tickFormatter={safeCurrency} />
+              <Tooltip formatter={(value) => formatCurrency(value)} />
+              <Legend />
+              {hasBandcamp && (
+                <Line type="linear" dataKey="Bandcamp" stroke="#408294" strokeWidth={2} connectNulls={true} dot={false} />
+              )}
+            </LineChart>
+          </ResponsiveContainer>
+          ) : (
+            <div style={{ padding: 12, color: '#6b7280' }}>No chart data available</div>
+          )}
+        </div>
+
+        {/* Distribution split by platform/store */}
+        <div className={styles.chartCard} style={{ minHeight: 320 }}>
+          <h3>Distribution - Daily Revenue by Platform</h3>
+          {distributionChartData && distributionChartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={distributionChartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="period" tick={{ fontSize: 12 }} interval="preserveStartEnd" />
+              <YAxis domain={[0, 'dataMax']} tickFormatter={safeCurrency} />
+              <Tooltip formatter={(value) => formatCurrency(value)} />
+              <Legend />
+              {distributionRenderKeys.map((key, idx) => (
+                <Line 
+                  key={key} 
+                  type="monotone" 
+                  dataKey={key} 
+                  stroke={platformColors[key] || palette[idx % palette.length]} 
+                  strokeWidth={2} 
+                  connectNulls={true}
+                  dot={false}
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+          ) : (
+            <div style={{ padding: 12, color: '#6b7280' }}>No chart data available</div>
+          )}
+        </div>
+
+        <div className={styles.chartCard}>
+          <h3>Platform Revenue Share</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={(() => {
+                  // Create Bandcamp + top 5 distribution + Others structure
+                  const bandcamp = platformData.find(p => p.name === 'Bandcamp');
+                  const distributionPlatforms = platformData.filter(p => p.name !== 'Bandcamp');
+                  const top5Distribution = topNWithOthers(distributionPlatforms, 5, [], true);
+                  
+                  let result = [];
+                  if (bandcamp) {
+                    result.push(bandcamp);
+                  }
+                  result = result.concat(top5Distribution);
+                  
+                  // Recalculate percentages for the final set
+                  const total = result.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
+                  return result.map(item => ({
+                    ...item,
+                    percentage: total > 0 ? Math.round((Number(item.value) / total * 100) * 10) / 10 : 0,
+                    color: platformColors[item.name] || item.color || '#9CA3AF'
+                  }));
+                })()}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                label={({ name, percentage }) => `${name} ${percentage}%`}
+              >
+                {(() => {
+                  const bandcamp = platformData.find(p => p.name === 'Bandcamp');
+                  const distributionPlatforms = platformData.filter(p => p.name !== 'Bandcamp');
+                  const top5Distribution = topNWithOthers(distributionPlatforms, 5, [], true);
+                  
+                  let result = [];
+                  if (bandcamp) {
+                    result.push(bandcamp);
+                  }
+                  result = result.concat(top5Distribution);
+                  
+                  const total = result.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
+                  return result.map((item, index) => ({
+                    ...item,
+                    percentage: total > 0 ? Math.round((Number(item.value) / total * 100) * 10) / 10 : 0,
+                    color: platformColors[item.name] || item.color || '#9CA3AF'
+                  })).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ));
+                })()}
+              </Pie>
+              <Tooltip formatter={(value) => formatCurrency(value)} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Total Distribution Revenue by Platform */}
+        <div className={styles.chartCard}>
+          <h3>Distribution Revenue by Platform (Total)</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={topNWithOthers(platformData.filter(p => p.name !== 'Bandcamp'), 5, [], true)}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                label={({ name, percentage }) => `${name} ${percentage}%`}
+              >
+                {topNWithOthers(platformData.filter(p => p.name !== 'Bandcamp'), 5, [], true).map((entry, index) => (
+                  <Cell key={`cell-dist-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(value) => formatCurrency(value)} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className={styles.tabNavigation} style={{ marginTop: '2rem', marginBottom: '1rem' }}>
         <button 
-          className={`${styles.tab} ${activeTab === 'overview' ? styles.active : ''}`}
           onClick={() => setActiveTab('overview')}
+          className={activeTab === 'overview' ? styles.activeTab : styles.tab}
+          style={{
+            padding: '10px 20px',
+            marginRight: '10px',
+            backgroundColor: activeTab === 'overview' ? '#007acc' : '#f0f0f0',
+            color: activeTab === 'overview' ? 'white' : 'black',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer'
+          }}
         >
-          📊 Overview
+          Monthly Overview
         </button>
         <button 
-          className={`${styles.tab} ${activeTab === 'artists' ? styles.active : ''}`}
-          onClick={() => setActiveTab('artists')}
+          onClick={() => setActiveTab('detailed')}
+          className={activeTab === 'detailed' ? styles.activeTab : styles.tab}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: activeTab === 'detailed' ? '#007acc' : '#f0f0f0',
+            color: activeTab === 'detailed' ? 'white' : 'black',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer'
+          }}
         >
-          🎵 Artists
-        </button>
-        <button 
-          className={`${styles.tab} ${activeTab === 'tracks' ? styles.active : ''}`}
-          onClick={() => setActiveTab('tracks')}
-        >
-          🎶 Tracks
-        </button>
-        <button 
-          className={`${styles.tab} ${activeTab === 'platforms' ? styles.active : ''}`}
-          onClick={() => setActiveTab('platforms')}
-        >
-          🌍 Platforms
+          Detailed Transactions
         </button>
       </div>
 
-      {/* Overview Tab */}
+      {/* Monthly Overview Table */}
       {activeTab === 'overview' && (
-        <div className={styles.tabContent}>
-          {/* KPI Cards */}
-          <div className={styles.kpiGrid}>
-            <div className={styles.kpiCard}>
-              <h3>Total Revenue</h3>
-              <div className={styles.kpiValue}>{formatCurrency(data.overview.totalRevenue)}</div>
-              <div className={styles.kpiSubtext}>{selectedYear} performance</div>
-            </div>
-            
-            <div className={styles.kpiCard}>
-              <h3>Active Artists</h3>
-              <div className={styles.kpiValue}>{data.overview.totalArtists}</div>
-              <div className={styles.kpiSubtext}>earning revenue</div>
-            </div>
-            
-            <div className={styles.kpiCard}>
-              <h3>Total Tracks</h3>
-              <div className={styles.kpiValue}>{data.overview.totalTracks}</div>
-              <div className={styles.kpiSubtext}>with earnings</div>
-            </div>
-            
-            <div className={styles.kpiCard}>
-              <h3>Transactions</h3>
-              <div className={styles.kpiValue}>{formatNumber(data.overview.totalTransactions)}</div>
-              <div className={styles.kpiSubtext}>across all platforms</div>
+        <div className={styles.tableSection}>
+          <div className={styles.tableHeader}>
+            <h3>Monthly Revenue Overview</h3>
+            <div>
+              Showing {monthlyData.length} months
             </div>
           </div>
 
-          {/* Charts Row */}
-          <div className={styles.chartsRow}>
-            {/* Quarterly Performance */}
-            <div className={styles.chartCard}>
-              <h3>📈 Quarterly Performance</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={data.quarterlyData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="quarter" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => formatCurrency(value)} />
-                  <Area type="monotone" dataKey="distribution" stackId="1" stroke="#667eea" fill="#667eea" />
-                  <Area type="monotone" dataKey="bandcamp" stackId="1" stroke="#408294" fill="#408294" />
-                </AreaChart>
-              </ResponsiveContainer>
+          <div className={styles.tableContainer}>
+            <table className={styles.detailedTable}>
+              <thead>
+                 <tr>
+                   <th>Month</th>
+                   <th>Total Revenue</th>
+                   <th>Downloads</th>
+                   <th>Streams</th>
+                   <th>Artists</th>
+                   <th>Tracks</th>
+                   <th>Top Release</th>
+                   <th>Top Platforms</th>
+                 </tr>
+              </thead>
+              <tbody>
+                {monthlyData.map((month) => (
+                   <tr key={month.month}>
+                     <td className={styles.monthName}>{month.month_name}</td>
+                     <td className={styles.revenue}>{formatCurrency(month.total_revenue)}</td>
+                     <td className={styles.number}>{parseInt(month.total_downloads || 0).toLocaleString()}</td>
+                     <td className={styles.number}>{parseInt(month.total_streams || 0).toLocaleString()}</td>
+                     <td className={styles.number}>{month.unique_artists}</td>
+                     <td className={styles.number}>{month.unique_tracks}</td>
+                     <td className={styles.catalog}>{month.top_release}</td>
+                     <td className={styles.platforms}>
+                       {month.top_platforms.slice(0, 3).map((platform, idx) => (
+                         <span key={idx} style={{ marginRight: '8px', fontSize: '0.85em' }}>
+                           {platform.name} ({platform.percentage}%)
+                         </span>
+                       ))}
+                     </td>
+                   </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Detailed Transactions Table */}
+      {activeTab === 'detailed' && (
+        <div className={styles.tableSection}>
+          <div className={styles.tableHeader}>
+            <h3>Revenue Transactions</h3>
+            <div>
+              Showing {data.length} of {pagination.totalCount.toLocaleString()} 
+              (Page {pagination.page} of {Math.ceil(pagination.totalCount / pagination.pageSize)})
+            </div>
+          </div>
+
+        <div className={styles.tableContainer}>
+          <table className={styles.detailedTable}>
+              <thead>
+                <tr>
+                  <th>Vendor</th>
+                  <th>Source</th>
+                  <th>Year</th>
+                  <th>Q</th>
+                  <th>Date</th>
+                  <th>Catalog</th>
+                  <th>Track Artist</th>
+                  <th>Track Name</th>
+                  <th>ISRC</th>
+                  <th>Platform</th>
+                  <th>Quantity</th>
+                  <th>Type</th>
+                  <th>Revenue</th>
+                </tr>
+              </thead>
+            <tbody>
+              {data.map((row) => (
+                <tr key={row.id}>
+                  <td className={styles.vendor}>{row.vendor}</td>
+                  <td className={styles.source}>{row.data_source || 'CSV'}</td>
+                  <td>{row.year}</td>
+                  <td>{row.quarter}</td>
+                  <td className={styles.date}>{row.date}</td>
+                  <td className={styles.catalog}>{row.catalog_number}</td>
+                  <td className={styles.artistName}>{row.track_artist}</td>
+                  <td className={styles.trackName}>{row.track_name}</td>
+                  <td className={styles.isrc}>{row.isrc}</td>
+                  <td className={styles.platform}>{row.platform}</td>
+                  <td className={styles.number}>
+                    {parseInt((row.downloads || 0) + (row.streams || 0)).toLocaleString()}
+                  </td>
+                  <td className={styles.type}>
+                    {row.vendor === 'Bandcamp' || (row.platform && row.platform.toLowerCase().includes('beatport')) ? 
+                      'Downloads' : 'Streams'
+                    }
+                  </td>
+                  <td className={styles.revenue}>
+                    {row.vendor === 'Bandcamp' && row.currency === 'USD' ? 
+                      `$${parseFloat(row.original_amount || row.revenue).toFixed(2)}` : 
+                      formatCurrency(row.revenue)
+                    }
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+          {/* Pagination */}
+          <div className={styles.pagination}>
+            <div className={styles.pageControls}>
               <button 
-                className={styles.exportBtn}
-                onClick={() => exportData('quarterly')}
+                onClick={() => setPagination(prev => ({...prev, page: Math.max(1, prev.page - 1)}))}
+                disabled={pagination.page === 1}
+                className={styles.pageBtn}
               >
-                📊 Export Quarterly Data
+                Previous
+              </button>
+              
+              <span className={styles.pageInfo}>
+                Page {pagination.page} of {Math.ceil(pagination.totalCount / pagination.pageSize)}
+              </span>
+              
+              <button 
+                onClick={() => setPagination(prev => ({...prev, page: prev.page + 1}))}
+                disabled={pagination.page >= Math.ceil(pagination.totalCount / pagination.pageSize)}
+                className={styles.pageBtn}
+              >
+                Next
               </button>
             </div>
-
-            {/* Platform Breakdown */}
-            <div className={styles.chartCard}>
-              <h3>🌍 Platform Revenue Share</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={data.platformBreakdown}
-                    dataKey="revenue"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    label={({ name, percentage }) => `${name} ${percentage}%`}
-                  >
-                    {data.platformBreakdown.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => formatCurrency(value)} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Artists Tab */}
-      {activeTab === 'artists' && (
-        <div className={styles.tabContent}>
-          <div className={styles.sectionHeader}>
-            <h2>🎵 Revenue by Artist</h2>
-            <button 
-              className={styles.exportBtn}
-              onClick={() => exportData('artists')}
+            
+            <select
+              value={pagination.pageSize}
+              onChange={(e) => setPagination(prev => ({...prev, pageSize: parseInt(e.target.value), page: 1}))}
+              className={styles.pageSizeSelect}
             >
-              📊 Export Artist Data
-            </button>
-          </div>
-          
-          <div className={styles.tableContainer}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Artist</th>
-                  <th>Total Revenue</th>
-                  <th>Tracks</th>
-                  <th>% of Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.artistBreakdown.map((artist, index) => (
-                  <tr key={artist.artist}>
-                    <td>#{index + 1}</td>
-                    <td className={styles.artistName}>{artist.artist}</td>
-                    <td className={styles.revenue}>{formatCurrency(artist.revenue)}</td>
-                    <td>{artist.tracks}</td>
-                    <td>{artist.percentage}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              <option value="50">50 per page</option>
+              <option value="100">100 per page</option>
+              <option value="200">200 per page</option>
+              <option value="500">500 per page</option>
+            </select>
           </div>
         </div>
       )}
-
-      {/* Tracks Tab */}
-      {activeTab === 'tracks' && (
-        <div className={styles.tabContent}>
-          <div className={styles.sectionHeader}>
-            <h2>🎶 Revenue by Track</h2>
-            <button 
-              className={styles.exportBtn}
-              onClick={() => exportData('tracks')}
-            >
-              📊 Export Track Data
-            </button>
-          </div>
-          
-          <div className={styles.tableContainer}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Artist</th>
-                  <th>Track</th>
-                  <th>Catalog</th>
-                  <th>Revenue</th>
-                  <th>Streams</th>
-                  <th>ISRC</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.trackBreakdown.map((track, index) => (
-                  <tr key={track.isrc}>
-                    <td>#{index + 1}</td>
-                    <td className={styles.artistName}>{track.artist}</td>
-                    <td className={styles.trackTitle}>{track.title}</td>
-                    <td className={styles.catalog}>{track.catalog}</td>
-                    <td className={styles.revenue}>{formatCurrency(track.revenue)}</td>
-                    <td>{formatNumber(track.streams)}</td>
-                    <td className={styles.isrc}>{track.isrc}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Platforms Tab */}
-      {activeTab === 'platforms' && (
-        <div className={styles.tabContent}>
-          <div className={styles.sectionHeader}>
-            <h2>🌍 Platform Performance</h2>
-          </div>
-          
-          <div className={styles.platformGrid}>
-            {data.platformBreakdown.map((platform) => (
-              <div key={platform.name} className={styles.platformCard}>
-                <div className={styles.platformHeader}>
-                  <div 
-                    className={styles.platformColor} 
-                    style={{ backgroundColor: platform.color }}
-                  ></div>
-                  <h3>{platform.name}</h3>
-                </div>
-                <div className={styles.platformRevenue}>
-                  {formatCurrency(platform.revenue)}
-                </div>
-                <div className={styles.platformPercentage}>
-                  {platform.percentage}% of total revenue
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Platform Performance Chart */}
-          <div className={styles.chartCard}>
-            <h3>💰 Platform Revenue Comparison</h3>
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={data.platformBreakdown} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value) => formatCurrency(value)} />
-                <Bar dataKey="revenue" fill="#667eea" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
-      {/* Bottom Action Section */}
-      <section className={styles.actionSection}>
-        <h2>💰 Year-End Payout Summary</h2>
-        <div className={styles.payoutSummary}>
-          <div className={styles.payoutCard}>
-            <h3>🎯 2024 Total</h3>
-            <div className={styles.payoutAmount}>{formatCurrency(data.overview.totalRevenue)}</div>
-            <p>Ready for artist distribution</p>
-          </div>
-          
-          <div className={styles.payoutCard}>
-            <h3>🏆 Top Artist</h3>
-            <div className={styles.payoutAmount}>Ibu Selva</div>
-            <p>{formatCurrency(1426.45)} earned</p>
-          </div>
-          
-          <div className={styles.payoutCard}>
-            <h3>🎵 Top Track</h3>
-            <div className={styles.payoutAmount}>Milonga</div>
-            <p>{formatCurrency(1126.01)} earned</p>
-          </div>
-        </div>
-        
-        <div className={styles.actionButtons}>
-          <a 
-            href="http://127.0.0.1:8000/admin/finances/revenueevent/" 
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.actionBtn}
-          >
-            🔧 Django Admin
-          </a>
-          <button 
-            onClick={() => exportData('artists')}
-            className={styles.actionBtn}
-          >
-            📊 Export All Data
-          </button>
-        </div>
-      </section>
     </div>
   );
 };
 
-export default Analytics;
+const AnalyticsImproved = () => {
+  return (
+    <ErrorBoundary>
+      <AnalyticsContent />
+    </ErrorBoundary>
+  );
+};
+
+export default AnalyticsImproved;
